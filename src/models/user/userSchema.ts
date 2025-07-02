@@ -21,7 +21,10 @@ export const UserSchema = new Schema<IUser>(
   {
     name: NameSchema,
     username: String,
-    emails: [EmailSchema],
+    emails: {
+      type: [EmailSchema],
+      select: false,
+    },
     phones: [PhoneSchema],
     primaryEmail: String,
     primaryPhone: String,

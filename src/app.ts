@@ -14,6 +14,8 @@ import { rateLimiter } from './middlewares/rateLimiter';
 import HttpStatusCode from './utils/HttpStatusCode';
 import Status from './utils/status';
 
+import sellerAuthRouter from './routes/sellerAuthRoute';
+
 const app: Application = express();
 
 // Development logging
@@ -84,6 +86,9 @@ app.all(/(.*)/, (req: Request, res: Response, next: NextFunction) => {
     )
   );
 });
+
+// Shop route
+app.use('/v1/seller/auth', sellerAuthRouter);
 
 // Global error handling middleware
 app.use(globalErrorHandler);

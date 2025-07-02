@@ -1,5 +1,6 @@
 import { getUserModel } from '../models/user/userSchema';
 import AuthServices from '../services/auth/AuthServices';
+import { AuthServiceOptions } from '../services/auth/types/authTypes';
 import { IUser } from '../types/user';
 import {
   accessCookieExp,
@@ -8,7 +9,7 @@ import {
   refreshCookieExp,
 } from '../utils/cookieOptions';
 
-const shopAuthController = new AuthServices<IUser>({
+const options: AuthServiceOptions<IUser> = {
   model: getUserModel('Seller'),
   cookies: {
     access: {
@@ -26,6 +27,8 @@ const shopAuthController = new AuthServices<IUser>({
     },
   },
   role: 'seller',
-});
+};
 
-export default shopAuthController;
+const sellerAuthController = new AuthServices<IUser>(options);
+
+export default sellerAuthController;

@@ -5,8 +5,9 @@ import config from '../../../configs/config';
 import ApiError from '../../../middlewares/errors/ApiError';
 import HttpStatusCode from '../../../utils/HttpStatusCode';
 import { Crypto } from '../../security/CryptoServices';
+import { TokenService } from './TokenService';
 
-export class AuthKit {
+export class AuthKit extends TokenService {
   protected creatOtp = async (
     data: object,
     req: Request
@@ -39,5 +40,15 @@ export class AuthKit {
         HttpStatusCode.INTERNAL_SERVER_ERROR
       );
     }
+  };
+
+  protected normalizeMail = (email: string): string => {
+    const [localPart, domain] = email.split('@');
+
+    if (domain.toLowerCase() === 'gmail.com') {
+      return localPart.replace(/\./g, '') + '@gmail.com';
+    }
+
+    return email.toLowerCase();
   };
 }

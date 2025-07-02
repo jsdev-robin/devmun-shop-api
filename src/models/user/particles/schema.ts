@@ -27,10 +27,26 @@ export const LocalizedStringSchema = new Schema<ILocalizedString>(
 
 export const NameSchema = new Schema<IName>(
   {
-    first: String,
-    middle: String,
-    last: String,
-    full: String,
+    first: {
+      type: String,
+      set: (val: string) =>
+        val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
+    },
+    middle: {
+      type: String,
+      set: (val: string) =>
+        val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
+    },
+    last: {
+      type: String,
+      set: (val: string) =>
+        val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
+    },
+    full: {
+      type: String,
+      set: (val: string) =>
+        val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
+    },
     localized: LocalizedStringSchema,
   },
   { _id: false }
