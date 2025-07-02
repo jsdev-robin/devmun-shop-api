@@ -2,7 +2,7 @@ import { Model } from 'mongoose';
 import { IUser, UserRole } from '../../types/user';
 import { AuthServiceOptions } from './types/authTypes';
 
-export class AuthService<T extends IUser> {
+export class AuthServices<T extends IUser> {
   private readonly model: Model<T>;
   private readonly role: UserRole;
 
@@ -12,4 +12,4 @@ export class AuthService<T extends IUser> {
   }
 }
 
-export default AuthService;
+export default AuthServices;
