@@ -121,6 +121,52 @@ export class AuthKit extends TokenService {
     lng: Number(req.ipinfo?.loc?.split(',')[1]) || 0,
   });
 
+  protected rotateSession = async <T extends IUser>({
+    model,
+    id,
+    oldToken,
+    newToken,
+  }: {
+    model: Model<T>;
+    id: string;
+    oldToken: string;
+    newToken: string;
+  }): Promise<void> => {
+    try {
+      await Promise.all([
+        // Redis: replace old token with new one
+        (async () => {
+          const p = nodeClient.multi();
+          p.SREM(`${id}:session`, String(oldToken));
+          p.SADD(`${id}:session`, Crypto.hmac(String(newToken)));
+          p.EXPIRE(`${id}:session`, refreshTTL * 24 * 60 * 60);
+          await p.exec();
+        })(),
+
+        // DB: update token inside sessionToken array
+        model
+          .findByIdAndUpdate(
+            id,
+            {
+              $set: {
+                'sessionToken.$[elem].token': newToken,
+              },
+            },
+            {
+              arrayFilters: [{ 'elem.token': oldToken }],
+              new: true,
+            }
+          )
+          .exec(),
+      ]);
+    } catch {
+      throw new ApiError(
+        'Failed to rotate session. Please try again later.',
+        HttpStatusCode.INTERNAL_SERVER_ERROR
+      );
+    }
+  };
+
   protected storeSession = async <T extends { _id: string | number }>({
     Model,
     req,
@@ -176,52 +222,6 @@ export class AuthKit extends TokenService {
     } catch {
       throw new ApiError(
         'Failed to store session.',
-        HttpStatusCode.INTERNAL_SERVER_ERROR
-      );
-    }
-  };
-
-  protected rotateSession = async <T extends IUser>({
-    model,
-    id,
-    oldToken,
-    newToken,
-  }: {
-    model: Model<T>;
-    id: string;
-    oldToken: string;
-    newToken: string;
-  }): Promise<void> => {
-    try {
-      await Promise.all([
-        // Redis: replace old token with new one
-        (async () => {
-          const p = nodeClient.multi();
-          p.SREM(`${id}:session`, String(oldToken));
-          p.SADD(`${id}:session`, Crypto.hmac(String(newToken)));
-          p.EXPIRE(`${id}:session`, refreshTTL * 24 * 60 * 60);
-          await p.exec();
-        })(),
-
-        // DB: update token inside sessionToken array
-        model
-          .findByIdAndUpdate(
-            id,
-            {
-              $set: {
-                'sessionToken.$[elem].token': newToken,
-              },
-            },
-            {
-              arrayFilters: [{ 'elem.token': oldToken }],
-              new: true,
-            }
-          )
-          .exec(),
-      ]);
-    } catch {
-      throw new ApiError(
-        'Failed to rotate session. Please try again later.',
         HttpStatusCode.INTERNAL_SERVER_ERROR
       );
     }

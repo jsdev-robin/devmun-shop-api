@@ -36,7 +36,10 @@ export const UserSchema = new Schema<IUser>(
     permissionOverrides: [PermissionOverrideSchema],
     mfaFactors: [MFAFactorSchema],
     addresses: [AddressSchema],
-    sessions: [SessionSchema],
+    sessions: {
+      type: [SessionSchema],
+      select: false,
+    },
     notificationPreferences: [NotificationPreferenceSchema],
     accountChangeLogs: [AccountChangeLogSchema],
     behaviorAnalytics: BehaviorAnalyticsSchema,
@@ -44,6 +47,11 @@ export const UserSchema = new Schema<IUser>(
     emailChangeLog: {
       type: [EmailSchema],
       select: false,
+    },
+    loginAttempts: {
+      attempts: { type: Number, default: 0 },
+      lock: { type: Boolean, default: false },
+      date: Date,
     },
     isActive: Boolean,
     isBanned: Boolean,

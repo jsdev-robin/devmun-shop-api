@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto';
 import { Request } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../../../configs/config';
@@ -36,17 +37,27 @@ export class TokenService extends CookieService {
     decoded: TokenSignature | null,
     req: Request
   ): boolean {
+    if (!decoded) return true;
+
+    const compare = (a: string, b: string): boolean => {
+      const aBuf = Buffer.from(a);
+      const bBuf = Buffer.from(b);
+
+      if (aBuf.length !== bBuf.length) return false;
+      return timingSafeEqual(aBuf, bBuf);
+    };
+
     return (
-      decoded?.ip !== Crypto.hmac(String(req.ip)) ||
-      decoded?.device !== Crypto.hmac(String(req.useragent?.os)) ||
-      decoded?.browser !== Crypto.hmac(String(req.useragent?.browser))
+      !compare(decoded.ip, Crypto.hmac(String(req.ip))) ||
+      !compare(decoded.device, Crypto.hmac(String(req.useragent?.os))) ||
+      !compare(decoded.browser, Crypto.hmac(String(req.useragent?.browser)))
     );
   }
 
-  protected rotateToken(
+  protected rotateToken = (
     req: Request,
     data: { id: string; role: string; remember: boolean }
-  ): [string, string] {
+  ): [string, string] => {
     try {
       const clientSignature = this.tokenSignature(req, {
         id: data.id,
@@ -82,5 +93,5 @@ export class TokenService extends CookieService {
         HttpStatusCode.INTERNAL_SERVER_ERROR
       );
     }
-  }
+  };
 }

@@ -172,6 +172,11 @@ export interface IUser extends Document {
   behaviorAnalytics?: IBehaviorAnalytics;
   complianceFlags?: IComplianceFlags;
   emailChangeLog?: IEmail[];
+  loginAttempts: {
+    attempts: number;
+    lock: boolean;
+    date: Date | null;
+  };
   isActive?: boolean;
   isBanned?: boolean;
   banReason?: string;

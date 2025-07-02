@@ -170,17 +170,46 @@ export class AuthServices<T extends IUser> extends AuthKit {
       res: Response,
       next: NextFunction
     ): Promise<void> => {
-      // Extract login credentials and remember flag from request body
       const { email, password, remember } = req.body;
 
-      // Find user by email and include password for validation
       const user = await this.model
         .findOne({ email })
-        .select('+password')
+        .select('+password +loginAttempts')
         .exec();
 
-      // Check if user exists and password is correct
+      // Check account lock first
+      if (user?.loginAttempts?.lock) {
+        const lockTimePassed =
+          user.loginAttempts.date &&
+          Date.now() - user.loginAttempts.date.getTime() > 15 * 60 * 1000;
+
+        if (!lockTimePassed) {
+          return next(
+            new ApiError(
+              'Account locked due to multiple failed login attempts. Please try again after 15 minutes.',
+              HttpStatusCode.LOCKED
+            )
+          );
+        }
+
+        // Reset if lock expired
+        user.loginAttempts.lock = false;
+        user.loginAttempts.attempts = 0;
+        user.loginAttempts.date = null;
+        await user.save();
+      }
+
       if (!user || !(await user.isPasswordValid(password))) {
+        if (user?.loginAttempts) {
+          user.loginAttempts.attempts =
+            (user.loginAttempts.attempts || 0) + 1 + 1;
+          if (user.loginAttempts.attempts >= 5) {
+            user.loginAttempts.lock = true;
+            user.loginAttempts.date = new Date();
+          }
+          await user.save();
+        }
+
         return next(
           new ApiError(
             'Incorrect email or password. Please check your credentials and try again.',
@@ -189,10 +218,16 @@ export class AuthServices<T extends IUser> extends AuthKit {
         );
       }
 
-      // Remove sensitive fields from user object before attaching to request
+      // Reset attempts on successful login
+      if (user.loginAttempts?.attempts) {
+        user.loginAttempts.attempts = 0;
+        await user.save();
+      }
+
+      // Remove sensitive info
       user.password = undefined;
 
-      // Attach user info and remember flag to request for next middleware
+      // Attach session info
       req.self = user;
       req.remember = remember;
 
