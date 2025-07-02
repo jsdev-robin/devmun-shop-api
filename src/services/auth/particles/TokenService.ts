@@ -22,22 +22,22 @@ export class TokenService extends CookieService {
   constructor(options: { cookies: IAuthCookies }) {
     super(options);
   }
-  private getClientSignature(req: Request, id: string, role: string) {
+  private tokenSignature(req: Request, user: { id: string; role: string }) {
     return {
       ip: Crypto.hmac(String(req.ip)),
       browser: Crypto.hmac(String(req.useragent?.browser)),
       device: Crypto.hmac(String(req.useragent?.os)),
-      id,
-      role,
+      id: user.id,
+      role: user.role,
     };
   }
 
-  protected checkClientSignature(
+  protected checkTokenSignature(
     decoded: TokenSignature | null,
     req: Request
   ): boolean {
     return (
-      // decoded?.ip !== Crypto.hmac(String(req.ip)) ||
+      decoded?.ip !== Crypto.hmac(String(req.ip)) ||
       decoded?.device !== Crypto.hmac(String(req.useragent?.os)) ||
       decoded?.browser !== Crypto.hmac(String(req.useragent?.browser))
     );
@@ -50,7 +50,10 @@ export class TokenService extends CookieService {
     remember: boolean
   ): [string, string] {
     try {
-      const clientSignature = this.getClientSignature(req, id, role);
+      const clientSignature = this.tokenSignature(req, {
+        id: id,
+        role: role,
+      });
 
       const accessToken = jwt.sign(
         { ...clientSignature },

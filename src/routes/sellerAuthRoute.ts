@@ -30,4 +30,17 @@ router.post(
   sellerAuthController.verifyEmail
 );
 
+router.post(
+  '/signin',
+  rateLimiter({
+    max: 5,
+    message:
+      'Too many sign-in attempts. Please wait 15 minutes before trying again.',
+  }),
+  authSchema.signin,
+  runSchema,
+  sellerAuthController.signin,
+  sellerAuthController.createSession()
+);
+
 export default router;

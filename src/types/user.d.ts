@@ -13,21 +13,12 @@ export interface IName {
   localized?: ILocalizedString;
 }
 
-export interface IEmailVerificationHistory {
-  attemptedAt?: Date;
-  ip?: string;
-  userAgent?: string;
-  success?: boolean;
-}
-
 export interface IEmail {
   email?: string;
   verified?: boolean;
   verifiedAt?: Date;
-  primary?: boolean;
-  addedAt?: Date;
-  verificationAttempts?: number;
-  verificationHistory?: IEmailVerificationHistory[];
+  ip: string;
+  userAgent: string;
 }
 
 export interface IPhoneVerificationHistory {
@@ -85,7 +76,7 @@ export interface IMFAFactor {
 }
 
 export interface ISession {
-  sessionId?: string;
+  token?: string;
   deviceInfo?: {
     deviceType?: string;
     os?: string;
@@ -131,20 +122,6 @@ export interface INotificationPreference {
   enabled?: boolean;
 }
 
-export interface ILoginAttempt {
-  timestamp?: Date;
-  ip?: string;
-  userAgent?: string;
-  geoLocation?: {
-    city?: string;
-    country?: string;
-    lat?: number;
-    lng?: number;
-  };
-  success?: boolean;
-  failureReason?: string;
-}
-
 export interface IAccountChangeLog {
   changedAt?: Date;
   changedBy?: Types.ObjectId;
@@ -179,7 +156,6 @@ export interface IComplianceFlags {
 export interface IUser extends Document {
   name?: IName;
   username?: string;
-  emails?: IEmail[];
   phones?: IPhone[];
   email?: string;
   normalizeMail?: string;
@@ -192,10 +168,10 @@ export interface IUser extends Document {
   addresses?: IAddress[];
   sessions?: ISession[];
   notificationPreferences?: INotificationPreference[];
-  loginAttempts?: ILoginAttempt[];
   accountChangeLogs?: IAccountChangeLog[];
   behaviorAnalytics?: IBehaviorAnalytics;
   complianceFlags?: IComplianceFlags;
+  emailChangeLog?: IEmail[];
   isActive?: boolean;
   isBanned?: boolean;
   banReason?: string;
@@ -203,4 +179,6 @@ export interface IUser extends Document {
   deletedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
+
+  isPasswordValid: (candidatePassword: string) => Promise<boolean>;
 }

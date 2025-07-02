@@ -5,9 +5,7 @@ import {
   IBehaviorAnalytics,
   IComplianceFlags,
   IEmail,
-  IEmailVerificationHistory,
   ILocalizedString,
-  ILoginAttempt,
   IMFAFactor,
   IName,
   INotificationPreference,
@@ -43,26 +41,13 @@ export const NameSchema = new Schema<IName>(
   { _id: false }
 );
 
-export const EmailVerificationHistorySchema =
-  new Schema<IEmailVerificationHistory>(
-    {
-      attemptedAt: Date,
-      ip: String,
-      userAgent: String,
-      success: Boolean,
-    },
-    { _id: false }
-  );
-
 export const EmailSchema = new Schema<IEmail>(
   {
     email: String,
     verified: Boolean,
     verifiedAt: Date,
-    primary: Boolean,
-    addedAt: Date,
-    verificationAttempts: Number,
-    verificationHistory: [EmailVerificationHistorySchema],
+    ip: String,
+    userAgent: String,
   },
   { _id: false }
 );
@@ -139,7 +124,7 @@ export const MFAFactorSchema = new Schema<IMFAFactor>(
 
 export const SessionSchema = new Schema<ISession>(
   {
-    sessionId: String,
+    token: String,
     deviceInfo: {
       deviceType: String,
       os: String,
@@ -204,23 +189,6 @@ export const NotificationPreferenceSchema = new Schema<INotificationPreference>(
     channel: String,
     event: String,
     enabled: Boolean,
-  },
-  { _id: false }
-);
-
-export const LoginAttemptSchema = new Schema<ILoginAttempt>(
-  {
-    timestamp: Date,
-    ip: String,
-    userAgent: String,
-    geoLocation: {
-      city: String,
-      country: String,
-      lat: Number,
-      lng: Number,
-    },
-    success: Boolean,
-    failureReason: String,
   },
   { _id: false }
 );
