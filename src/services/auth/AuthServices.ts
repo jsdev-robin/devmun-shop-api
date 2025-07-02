@@ -1,14 +1,17 @@
 import { NextFunction, Request, Response } from 'express';
 import { ParamsDictionary } from 'express-serve-static-core';
+import jwt from 'jsonwebtoken';
 import { Model } from 'mongoose';
+import config from '../../configs/config';
 import { catchAsync } from '../../libs/catchAsync';
 import ApiError from '../../middlewares/errors/ApiError';
 import { IUser, UserRole } from '../../types/user';
 import HttpStatusCode from '../../utils/HttpStatusCode';
 import Status from '../../utils/status';
 import { SendMailServices } from '../email/SendMailServices';
+import { Crypto, Decipheriv } from '../security/CryptoServices';
 import { AuthKit } from './particles/AuthKit';
-import { AuthServiceOptions, ISignup } from './types/authTypes';
+import { AuthServiceOptions, ISignup, IVerifyEmail } from './types/authTypes';
 
 export class AuthServices<T extends IUser> extends AuthKit {
   private readonly model: Model<T>;
@@ -35,7 +38,7 @@ export class AuthServices<T extends IUser> extends AuthKit {
       // Check if a user already exists with the same email or normalized email
       const userExists = await this.model
         .findOne({
-          $or: [{ primaryEmail: email }, { normalizeMail: normEmail }],
+          $or: [{ email }, { normalizeMail: normEmail }],
         })
         .exec();
 
@@ -93,6 +96,72 @@ export class AuthServices<T extends IUser> extends AuthKit {
             )
           );
         });
+    }
+  );
+
+  public verifyEmail = catchAsync(
+    async (
+      req: Request<unknown, unknown, IVerifyEmail>,
+      res: Response,
+      next: NextFunction
+    ): Promise<void> => {
+      const { otp, token } = req.body;
+
+      // Decrypt token to retrieve encrypted user data
+      const { encrypted } = jwt.verify(token, config.ACTIVATION_SECRET) as {
+        encrypted: Decipheriv;
+      };
+
+      // Decrypt the encrypted user data
+      const { firstName, lastName, email, normalizeMail, password, solidOTP } =
+        await Crypto.decipheriv<{
+          firstName: string;
+          lastName: string;
+          email: string;
+          normalizeMail: string;
+          password: string;
+          solidOTP: string;
+        }>(encrypted, config.CRYPTO_SECRET);
+
+      // Validate OTP
+      if (Number(solidOTP) !== Number(otp)) {
+        return next(
+          new ApiError(
+            'The OTP you entered does not match. Please double-check the code and try again.',
+            HttpStatusCode.BAD_REQUEST
+          )
+        );
+      }
+
+      // Create new verified user
+      await this.model.create({
+        name: {
+          first: firstName,
+          last: lastName,
+        },
+        email: email,
+        normalizeMail: normalizeMail,
+        emails: {
+          email: email,
+          verified: true,
+          verifiedAt: Date.now(),
+          primary: true,
+          verificationAttempts: 0,
+          verificationHistory: {
+            attemptedAt: new Date(),
+            ip: req.ip,
+            userAgent: req.headers['user-agent'],
+            success: true,
+          },
+        },
+        password: password,
+      });
+
+      // Send success response
+      res.status(HttpStatusCode.CREATED).json({
+        status: Status.SUCCESS,
+        message: 'Your account has been successfully verified.',
+      });
     }
   );
 }

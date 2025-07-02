@@ -1,4 +1,10 @@
-import { model, Model, Schema } from 'mongoose';
+import { compare, hash } from 'bcryptjs';
+import {
+  CallbackWithoutResultAndOptionalError,
+  model,
+  Model,
+  Schema,
+} from 'mongoose';
 import { IUser } from '../../types/user';
 import {
   AccountChangeLogSchema,
@@ -26,10 +32,10 @@ export const UserSchema = new Schema<IUser>(
       select: false,
     },
     phones: [PhoneSchema],
-    primaryEmail: String,
+    email: String,
+    normalizeMail: String,
     primaryPhone: String,
-    passwordHash: String,
-    passwordSalt: String,
+    password: String,
     socialAccounts: [SocialAccountSchema],
     roles: [RoleSchema],
     permissionOverrides: [PermissionOverrideSchema],
@@ -49,6 +55,39 @@ export const UserSchema = new Schema<IUser>(
   },
   { timestamps: true }
 );
+
+UserSchema.pre('save', function (next) {
+  const cap = (str: string) =>
+    str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
+  if (this.name?.first && this.name?.last) {
+    this.name.full = (cap(this.name.first) + ' ' + cap(this.name.last)).trim();
+  }
+
+  next();
+});
+
+// Hash password before saving
+UserSchema.pre(
+  'save',
+  async function (next: CallbackWithoutResultAndOptionalError) {
+    try {
+      if (!this.isModified('password')) return next();
+      this.password = await hash(this.password ?? '', 12);
+
+      next();
+    } catch (error: unknown) {
+      next(error as Error);
+    }
+  }
+);
+
+// Validate provided password with stored hash
+UserSchema.methods.isPasswordValid = async function (
+  this: IUser,
+  candidatePassword: string
+): Promise<boolean> {
+  return await compare(candidatePassword, this.password ?? '');
+};
 
 export const getUserModel = (modelName: string = 'User'): Model<IUser> => {
   return model<IUser>(modelName, UserSchema);

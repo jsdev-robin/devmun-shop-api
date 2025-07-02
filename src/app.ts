@@ -77,6 +77,9 @@ app.get('/', (_, res) => {
   });
 });
 
+// Shop route
+app.use('/v1/seller/auth', sellerAuthRouter);
+
 // Handle 404 errors
 app.all(/(.*)/, (req: Request, res: Response, next: NextFunction) => {
   return next(
@@ -86,9 +89,6 @@ app.all(/(.*)/, (req: Request, res: Response, next: NextFunction) => {
     )
   );
 });
-
-// Shop route
-app.use('/v1/seller/auth', sellerAuthRouter);
 
 // Global error handling middleware
 app.use(globalErrorHandler);

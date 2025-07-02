@@ -32,21 +32,12 @@ export const NameSchema = new Schema<IName>(
       set: (val: string) =>
         val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
     },
-    middle: {
-      type: String,
-      set: (val: string) =>
-        val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
-    },
     last: {
       type: String,
       set: (val: string) =>
         val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
     },
-    full: {
-      type: String,
-      set: (val: string) =>
-        val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
-    },
+    full: String,
     localized: LocalizedStringSchema,
   },
   { _id: false }

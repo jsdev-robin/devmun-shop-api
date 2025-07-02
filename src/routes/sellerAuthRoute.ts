@@ -1,5 +1,6 @@
 import express from 'express';
 import sellerAuthController from '../controllers/sellerController';
+import { rateLimiter } from '../middlewares/rateLimiter';
 import { authSchema } from '../middlewares/validations/auth/authSchema';
 import { runSchema } from '../middlewares/validations/runSchema';
 
@@ -7,9 +8,26 @@ const router = express.Router();
 
 router.post(
   '/signup',
+  rateLimiter({
+    max: 10,
+    message:
+      'You’ve tried to sign up too many times. Please wait 15 minutes before trying again.',
+  }),
   authSchema.signup,
   runSchema,
   sellerAuthController.signup
+);
+
+router.post(
+  '/verify-email',
+  rateLimiter({
+    max: 5,
+    message:
+      'Too many email verification attempts detected. Please wait 15 minutes before trying again.',
+  }),
+  authSchema.verifyEmail,
+  runSchema,
+  sellerAuthController.verifyEmail
 );
 
 export default router;

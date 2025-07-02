@@ -8,7 +8,6 @@ export interface ILocalizedString {
 
 export interface IName {
   first?: string;
-  middle?: string;
   last?: string;
   full?: string;
   localized?: ILocalizedString;
@@ -182,10 +181,10 @@ export interface IUser extends Document {
   username?: string;
   emails?: IEmail[];
   phones?: IPhone[];
-  primaryEmail?: string;
+  email?: string;
+  normalizeMail?: string;
   primaryPhone?: string;
-  passwordHash?: string;
-  passwordSalt?: string;
+  password?: string;
   socialAccounts?: ISocialAccount[];
   roles?: IRole[];
   permissionOverrides?: IPermissionOverride[];
