@@ -3,6 +3,7 @@ import { ParamsDictionary } from 'express-serve-static-core';
 import jwt from 'jsonwebtoken';
 import { Model } from 'mongoose';
 import config from '../../configs/config';
+import { nodeClient } from '../../configs/redis';
 import { catchAsync } from '../../libs/catchAsync';
 import ApiError from '../../middlewares/errors/ApiError';
 import { IUser, UserRole } from '../../types/user';
@@ -11,6 +12,7 @@ import Status from '../../utils/status';
 import { SendMailServices } from '../email/SendMailServices';
 import { Crypto, Decipheriv } from '../security/CryptoServices';
 import { AuthKit } from './particles/AuthKit';
+import { TokenSignature } from './particles/TokenService';
 import {
   AuthServiceOptions,
   ISignin,
@@ -244,6 +246,244 @@ export class AuthServices<T extends IUser> extends AuthKit {
         }
       }
     );
+
+  public validateToken = catchAsync(
+    async (
+      req: Request<ParamsDictionary, unknown, unknown> & {
+        userId?: string | undefined;
+        accessToken?: string | undefined;
+      },
+      res: Response,
+      next: NextFunction
+    ): Promise<void> => {
+      const accessCookie = req.signedCookies[this.getAccessCookieConfig().name];
+
+      // If the access token is missing, throw an unauthorized error
+      if (!accessCookie) {
+        return this.sessionUnauthorized(res, next);
+      }
+
+      try {
+        // Verify the access token and decode the payload
+        const decoded = jwt.verify(accessCookie, config.ACCESS_TOKEN) as {
+          id: string;
+        } & TokenSignature;
+
+        // Attach user ID and access token to the request object
+        req.userId = decoded?.id;
+        req.accessToken = accessCookie;
+
+        // Validate the decrypted IP against the request IP
+        if (!decoded || this.checkTokenSignature(decoded, req)) {
+          return this.sessionUnauthorized(res, next);
+        }
+
+        next();
+      } catch (error) {
+        this.clearAllCookies(res);
+        next(error);
+      }
+    }
+  );
+
+  public requireAuth = catchAsync(
+    async (
+      req: Request<unknown, unknown, unknown> & {
+        userId?: string | undefined;
+        accessToken?: string | undefined;
+      },
+      res: Response,
+      next: NextFunction
+    ): Promise<void> => {
+      // Get credentials from request
+      const { userId, accessToken } = req;
+
+      // Query session and user data from Redis
+      const p = nodeClient.multi();
+
+      p.SISMEMBER(`${userId}:session`, Crypto.hmac(String(accessToken)));
+      p.json.GET(`${userId}`);
+
+      const [sessionToken, cachedUser] = await p.exec();
+
+      // Invalidate if session/user not found
+      if (!sessionToken || !cachedUser) {
+        return this.sessionUnauthorized(res, next);
+      }
+
+      // Resolve user from Redis or fallback to database
+      const user = cachedUser || (await this.model.findById(userId).exec());
+
+      if (!user) {
+        return next(
+          new ApiError(
+            "We couldn't find your account. Please contact support if you believe this is an error.",
+            HttpStatusCode.NOT_FOUND
+          )
+        );
+      }
+
+      req.self = user;
+      next();
+    }
+  );
+
+  public restrictTo = (...roles: UserRole[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+      const user = req.self;
+      if (!user?.role || !roles.includes(user.role)) {
+        const error = new ApiError(
+          'You do not have permission to perform this action',
+          HttpStatusCode.FORBIDDEN
+        );
+        next(error);
+        return;
+      }
+
+      next();
+    };
+  };
+
+  public refreshToken = catchAsync(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      // Get refresh token from cookies
+      const refreshCookie = req.cookies[this.getRefreshCookieConfig().name];
+
+      // Exit early if no refresh token is found
+      if (!refreshCookie) {
+        return this.sessionUnauthorized(res, next);
+      }
+
+      try {
+        // Verify and decode the refresh token payload
+        const decoded = jwt.verify(
+          refreshCookie,
+          config.REFRESH_TOKEN
+        ) as TokenSignature;
+
+        // Rotate access and refresh tokens
+        const [accessToken, refreshToken] = this.rotateToken(req, {
+          id: decoded.id,
+          role: decoded.role,
+          remember: decoded.remember,
+        });
+
+        // Hash new access token for Redis and DB session comparison
+        const oldToken = decoded.token;
+        const newToken = Crypto.hmac(String(accessToken));
+
+        // Rotate session in Redis: remove old and add new token
+        await this.rotateSession({
+          model: this.model,
+          id: decoded.id,
+          oldToken,
+          newToken,
+        });
+
+        // Set newly issued tokens in cookies
+        res.cookie(...this.createAccessCookie(accessToken, decoded.remember));
+        res.cookie(...this.createRefreshCookie(refreshToken, decoded.remember));
+
+        // Respond with success message
+        res.status(200).json({
+          status: Status.SUCCESS,
+          message: 'Token refreshed successfully.',
+        });
+      } catch (error) {
+        this.clearAllCookies(res);
+        next(error);
+      }
+    }
+  );
+
+  public signout = catchAsync(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      const accessToken = req.signedCookies[this.getAccessCookieConfig().name];
+      const user = req.self;
+
+      try {
+        await this.removeASession({
+          model: this.model,
+          res,
+          id: user.id,
+          token: Crypto.hmac(accessToken),
+        });
+
+        res.status(HttpStatusCode.OK).json({
+          status: Status.SUCCESS,
+          message: 'You have been successfully signed out.',
+        });
+      } catch (error) {
+        this.clearAllCookies(res);
+        next(error);
+      }
+    }
+  );
+
+  public signoutSession = catchAsync(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      // Extract the session token from request parameters
+      const { token } = req.params;
+      const user = req.self;
+
+      // Validate that token is provided
+      if (!token) {
+        return next(
+          new ApiError(
+            'Token is required.',
+            HttpStatusCode.INTERNAL_SERVER_ERROR
+          )
+        );
+      }
+
+      await this.removeASession({
+        model: this.model,
+        res,
+        id: user.id,
+        token: token,
+      });
+
+      // Send a success response indicating logout completion
+      res.status(HttpStatusCode.OK).json({
+        status: Status.SUCCESS,
+        message: 'You have been successfully logged out.',
+      });
+    }
+  );
+
+  public signoutAllSession = catchAsync(
+    async (req: Request, res: Response): Promise<void> => {
+      const user = req.self;
+
+      await this.removeAllSessions({
+        model: this.model,
+        id: user.id,
+      });
+
+      this.clearAllCookies(res);
+      res.status(HttpStatusCode.OK).json({
+        status: Status.SUCCESS,
+        message: 'You have been successfully logged out.',
+      });
+    }
+  );
+
+  // ================== Manage user information ==================
+  public getProfile = catchAsync(
+    async (req: Request, res: Response): Promise<void> => {
+      // User is already attached to request via auth middleware
+      const user = req.self;
+
+      // Consider returning only necessary profile data
+      res.status(HttpStatusCode.OK).json({
+        status: Status.SUCCESS,
+        message: 'Profile retrieved successfully',
+        data: {
+          user,
+        },
+      });
+    }
+  );
 }
 
 export default AuthServices;
