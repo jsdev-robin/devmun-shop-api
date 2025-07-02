@@ -12,7 +12,6 @@ import Status from '../../utils/status';
 import { SendMailServices } from '../email/SendMailServices';
 import { Crypto, Decipheriv } from '../security/CryptoServices';
 import { AuthKit } from './particles/AuthKit';
-import { cookieOptions } from './particles/CookieService';
 import { TokenSignature } from './particles/TokenService';
 import {
   AuthServiceOptions,
@@ -167,17 +166,20 @@ export class AuthServices<T extends IUser> extends AuthKit {
 
   public accountLock = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      const isLocked = req.cookies['x389kld'];
+      // Check for the presence of a signed cookie indicating the account is locked
+      const isLocked = req.signedCookies['x389kld'];
 
+      // If the lock cookie is present, block further requests with a LOCKED error
       if (isLocked) {
         return next(
           new ApiError(
-            'Your account is temporarily locked due to multiple failed login attempts. Please try again later.',
+            'Account locked due to multiple failed login attempts. Please try again after 15 minutes.',
             HttpStatusCode.LOCKED
           )
         );
       }
 
+      // Proceed to the next middleware if no lock cookie is found
       next();
     }
   );
@@ -188,50 +190,27 @@ export class AuthServices<T extends IUser> extends AuthKit {
       res: Response,
       next: NextFunction
     ): Promise<void> => {
+      // Extract login fields from request body
       const { email, password, remember } = req.body;
 
+      // Look up user by email, including password and loginAttempts fields
       const user = await this.model
         .findOne({ email })
         .select('+password +loginAttempts')
         .exec();
 
-      // Check account lock first
-      if (user?.loginAttempts?.lock) {
-        const lockTimePassed =
-          user.loginAttempts.date &&
-          Date.now() - user.loginAttempts.date.getTime() > 15 * 60 * 1000;
+      // Apply account lock policy (may block user if lock threshold met)
+      await this.enforceLockPolicy(res, next, user);
 
-        if (!lockTimePassed) {
-          res.cookie('x389kld', true, {
-            ...cookieOptions,
-            maxAge: 15 * 60 * 1000,
-          });
-          return next(
-            new ApiError(
-              'Account locked due to multiple failed login attempts. Please try again after 15 minutes.',
-              HttpStatusCode.LOCKED
-            )
-          );
-        }
+      // If response was already sent by enforceLockPolicy, exit early
+      if (res.headersSent) return;
 
-        // Reset if lock expired
-        user.loginAttempts.lock = false;
-        user.loginAttempts.attempts = 0;
-        user.loginAttempts.date = null;
-        await user.save();
-      }
-
+      // Validate user existence and password
       if (!user || !(await user.isPasswordValid(password))) {
-        if (user?.loginAttempts) {
-          user.loginAttempts.attempts =
-            (user.loginAttempts.attempts || 0) + 1 + 1;
-          if (user.loginAttempts.attempts >= 5) {
-            user.loginAttempts.lock = true;
-            user.loginAttempts.date = new Date();
-          }
-          await user.save();
-        }
+        // Increment login attempts only if user exists
+        await user?.incrementLoginAttempts();
 
+        // Send unauthorized error response for invalid credentials
         return next(
           new ApiError(
             'Incorrect email or password. Please check your credentials and try again.',
@@ -240,19 +219,20 @@ export class AuthServices<T extends IUser> extends AuthKit {
         );
       }
 
-      // Reset attempts on successful login
+      // Reset login attempts after successful authentication
       if (user.loginAttempts?.attempts) {
-        user.loginAttempts.attempts = 0;
-        await user.save();
+        res.clearCookie('x389kld');
+        await user?.resetLoginAttempts();
       }
 
-      // Remove sensitive info
+      // Remove sensitive password field before continuing
       user.password = undefined;
 
-      // Attach session info
+      // Attach authenticated user and session preference to request object
       req.self = user;
       req.remember = remember;
 
+      // Proceed to the next middleware (e.g., session/token generation)
       next();
     }
   );

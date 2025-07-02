@@ -186,4 +186,6 @@ export interface IUser extends Document {
   updatedAt?: Date;
 
   isPasswordValid: (candidatePassword: string) => Promise<boolean>;
+  incrementLoginAttempts: () => Promise<void>;
+  resetLoginAttempts: () => Promise<void>;
 }

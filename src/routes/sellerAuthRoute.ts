@@ -33,7 +33,7 @@ router.post(
 router.post(
   '/signin',
   rateLimiter({
-    max: 5,
+    max: 10,
     message:
       'Too many sign-in attempts. Please wait 15 minutes before trying again.',
   }),

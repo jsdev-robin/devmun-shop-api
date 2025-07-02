@@ -95,6 +95,29 @@ UserSchema.methods.isPasswordValid = async function (
   return await compare(candidatePassword, this.password ?? '');
 };
 
+// where UserSchema is defined
+UserSchema.methods.incrementLoginAttempts = async function (): Promise<void> {
+  if (!this.loginAttempts) {
+    this.loginAttempts = { attempts: 0, lock: false, date: null };
+  }
+  this.loginAttempts.attempts += 1;
+
+  if (this.loginAttempts.attempts >= 5) {
+    this.loginAttempts.lock = true;
+    this.loginAttempts.date = new Date();
+  }
+  await this.save();
+};
+
+UserSchema.methods.resetLoginAttempts = async function (): Promise<void> {
+  this.loginAttempts = {
+    attempts: 0,
+    lock: false,
+    date: null,
+  };
+  await this.save();
+};
+
 export const getUserModel = (modelName: string = 'User'): Model<IUser> => {
   return model<IUser>(modelName, UserSchema);
 };

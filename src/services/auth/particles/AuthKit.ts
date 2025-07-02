@@ -1,17 +1,68 @@
 import { randomInt } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { Model } from 'mongoose';
+import { Document, Model } from 'mongoose';
 import config from '../../../configs/config';
 import { nodeClient } from '../../../configs/redis';
 import ApiError from '../../../middlewares/errors/ApiError';
 import { IUser } from '../../../types/user';
 import HttpStatusCode from '../../../utils/HttpStatusCode';
 import { Crypto } from '../../security/CryptoServices';
-import { refreshTTL } from './CookieService';
+import { cookieOptions, enableSignature, refreshTTL } from './CookieService';
 import { TokenService } from './TokenService';
 
 export class AuthKit extends TokenService {
+  private getDeviceInfo = (req: Request) => {
+    const ua = req.useragent;
+    const deviceType = ua?.isSmartTV
+      ? 'smart-tv'
+      : ua?.isBot
+      ? 'bot'
+      : ua?.isMobileNative
+      ? 'mobile-native'
+      : ua?.isMobile
+      ? 'mobile'
+      : ua?.isTablet
+      ? 'tablet'
+      : ua?.isAndroidTablet
+      ? 'android-tablet'
+      : ua?.isiPad
+      ? 'ipad'
+      : ua?.isiPhone
+      ? 'iphone'
+      : ua?.isiPod
+      ? 'ipod'
+      : ua?.isKindleFire
+      ? 'kindle-fire'
+      : ua?.isDesktop
+      ? 'desktop'
+      : ua?.isWindows
+      ? 'windows'
+      : ua?.isMac
+      ? 'mac'
+      : ua?.isLinux
+      ? 'linux'
+      : ua?.isChromeOS
+      ? 'chromeos'
+      : ua?.isRaspberry
+      ? 'raspberry-pi'
+      : 'unknown';
+
+    return {
+      deviceType,
+      os: ua?.os ?? 'unknown',
+      browser: ua?.browser ?? 'unknown',
+      userAgent: req.headers['user-agent'] ?? 'unknown',
+    };
+  };
+
+  private getLocationInfo = (req: Request) => ({
+    city: req.ipinfo?.city || 'unknown',
+    country: req.ipinfo?.country || 'unknown',
+    lat: Number(req.ipinfo?.loc?.split(',')[0]) || 0,
+    lng: Number(req.ipinfo?.loc?.split(',')[1]) || 0,
+  });
+
   protected creatOtp = async (
     data: object,
     req: Request
@@ -68,57 +119,6 @@ export class AuthKit extends TokenService {
     verifiedAt: Date.now(),
     ip: req.ip,
     userAgent: req.headers['user-agent'],
-  });
-
-  private getDeviceInfo = (req: Request) => {
-    const ua = req.useragent;
-    const deviceType = ua?.isSmartTV
-      ? 'smart-tv'
-      : ua?.isBot
-      ? 'bot'
-      : ua?.isMobileNative
-      ? 'mobile-native'
-      : ua?.isMobile
-      ? 'mobile'
-      : ua?.isTablet
-      ? 'tablet'
-      : ua?.isAndroidTablet
-      ? 'android-tablet'
-      : ua?.isiPad
-      ? 'ipad'
-      : ua?.isiPhone
-      ? 'iphone'
-      : ua?.isiPod
-      ? 'ipod'
-      : ua?.isKindleFire
-      ? 'kindle-fire'
-      : ua?.isDesktop
-      ? 'desktop'
-      : ua?.isWindows
-      ? 'windows'
-      : ua?.isMac
-      ? 'mac'
-      : ua?.isLinux
-      ? 'linux'
-      : ua?.isChromeOS
-      ? 'chromeos'
-      : ua?.isRaspberry
-      ? 'raspberry-pi'
-      : 'unknown';
-
-    return {
-      deviceType,
-      os: ua?.os ?? 'unknown',
-      browser: ua?.browser ?? 'unknown',
-      userAgent: req.headers['user-agent'] ?? 'unknown',
-    };
-  };
-
-  private getLocationInfo = (req: Request) => ({
-    city: req.ipinfo?.city || 'unknown',
-    country: req.ipinfo?.country || 'unknown',
-    lat: Number(req.ipinfo?.loc?.split(',')[0]) || 0,
-    lng: Number(req.ipinfo?.loc?.split(',')[1]) || 0,
   });
 
   protected rotateSession = async <T extends IUser>({
@@ -425,5 +425,59 @@ export class AuthKit extends TokenService {
       return false;
     }
     return true;
+  };
+
+  protected enforceLockPolicy = async (
+    res: Response,
+    next: NextFunction,
+    user: (Document<unknown, unknown, IUser> & IUser) | null
+  ): Promise<void> => {
+    if (!user) return;
+
+    if (user?.loginAttempts?.lock) {
+      const lockTimePassed =
+        user.loginAttempts.date &&
+        Date.now() - user.loginAttempts.date.getTime() > 15 * 60 * 1000;
+
+      if (!lockTimePassed) {
+        res.cookie('x389kld', Crypto.randomHexString(), {
+          ...cookieOptions,
+          maxAge: 15 * 60 * 1000,
+        });
+        return next(
+          new ApiError(
+            'Account locked due to multiple failed login attempts. Please try again after 15 minutes.',
+            HttpStatusCode.LOCKED
+          )
+        );
+      }
+    }
+
+    // Check account lock first
+    if (user?.loginAttempts?.lock) {
+      const lockTimePassed =
+        user.loginAttempts.date &&
+        Date.now() - user.loginAttempts.date.getTime() > 15 * 60 * 1000;
+
+      if (!lockTimePassed) {
+        res.cookie('x389kld', true, {
+          ...cookieOptions,
+          ...enableSignature,
+          maxAge: 15 * 60 * 1000,
+        });
+        return next(
+          new ApiError(
+            'Account locked due to multiple failed login attempts. Please try again after 15 minutes.',
+            HttpStatusCode.LOCKED
+          )
+        );
+      }
+
+      // Reset if lock expired
+      user.loginAttempts.lock = false;
+      user.loginAttempts.attempts = 0;
+      user.loginAttempts.date = null;
+      await user.save();
+    }
   };
 }
