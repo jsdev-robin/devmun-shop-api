@@ -37,8 +37,6 @@ export class AuthServices<T extends IUser> extends AuthKit {
       // Destructure user input from request body
       const { firstName, lastName, email, password } = req.body;
 
-      console.log(req.ipinfo);
-
       // Normalize the email for consistency (e.g., lowercase, trimmed)
       const normEmail = this.normalizeMail(email);
 
@@ -212,12 +210,10 @@ export class AuthServices<T extends IUser> extends AuthKit {
         const redirect = req.redirect;
 
         // Generate access and refresh tokens
-        const [accessToken, refreshToken] = this.rotateToken(
-          req,
-          user.id,
-          user.role,
-          remember
-        );
+        const [accessToken, refreshToken] = this.rotateToken(req, {
+          ...user,
+          remember,
+        });
 
         // Set access and refresh tokens as cookies
         res.cookie(...this.createAccessCookie(accessToken, remember));

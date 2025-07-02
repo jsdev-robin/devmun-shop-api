@@ -153,7 +153,7 @@ export class AuthKit extends TokenService {
           user._id,
           {
             $push: {
-              sessionToken: {
+              sessions: {
                 token: hashedToken,
                 ip: req.ip,
                 deviceInfo: this.getDeviceInfo(req),

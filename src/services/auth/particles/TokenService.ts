@@ -45,14 +45,12 @@ export class TokenService extends CookieService {
 
   protected rotateToken(
     req: Request,
-    id: string,
-    role: string,
-    remember: boolean
+    data: { id: string; role: string; remember: boolean }
   ): [string, string] {
     try {
       const clientSignature = this.tokenSignature(req, {
-        id: id,
-        role: role,
+        id: data.id,
+        role: data.role,
       });
 
       const accessToken = jwt.sign(
@@ -65,7 +63,11 @@ export class TokenService extends CookieService {
       );
 
       const refreshToken = jwt.sign(
-        { ...clientSignature, remember, token: Crypto.hmac(accessToken) },
+        {
+          ...clientSignature,
+          remember: data.remember,
+          token: Crypto.hmac(accessToken),
+        },
         config.REFRESH_TOKEN,
         {
           expiresIn: config.REFRESH_TOKEN_EXPIRE,
