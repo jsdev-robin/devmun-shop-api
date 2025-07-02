@@ -43,4 +43,24 @@ router.post(
   sellerAuthController.createSession()
 );
 
+router.post('/refresh-token', sellerAuthController.refreshToken);
+
+router.use(
+  sellerAuthController.validateToken,
+  sellerAuthController.requireAuth,
+  sellerAuthController.restrictTo('seller', 'admin')
+);
+
+router.post('/signout', sellerAuthController.signout);
+router.post('/sessions/:token/revoke', sellerAuthController.signoutSession);
+router.post(
+  '/sessions/revoke-all',
+  rateLimiter({
+    max: 5,
+    message:
+      'You’ve made too many requests to revoke all sessions. Please wait 15 minutes and try again.',
+  }),
+  sellerAuthController.signoutAllSession
+);
+
 export default router;
