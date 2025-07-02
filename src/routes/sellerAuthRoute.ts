@@ -39,6 +39,7 @@ router.post(
   }),
   authSchema.signin,
   runSchema,
+  sellerAuthController.accountLock,
   sellerAuthController.signin,
   sellerAuthController.createSession()
 );

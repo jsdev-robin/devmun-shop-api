@@ -12,6 +12,7 @@ import Status from '../../utils/status';
 import { SendMailServices } from '../email/SendMailServices';
 import { Crypto, Decipheriv } from '../security/CryptoServices';
 import { AuthKit } from './particles/AuthKit';
+import { cookieOptions } from './particles/CookieService';
 import { TokenSignature } from './particles/TokenService';
 import {
   AuthServiceOptions,
@@ -164,6 +165,23 @@ export class AuthServices<T extends IUser> extends AuthKit {
     }
   );
 
+  public accountLock = catchAsync(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      const isLocked = req.cookies['x389kld'];
+
+      if (isLocked) {
+        return next(
+          new ApiError(
+            'Your account is temporarily locked due to multiple failed login attempts. Please try again later.',
+            HttpStatusCode.LOCKED
+          )
+        );
+      }
+
+      next();
+    }
+  );
+
   public signin = catchAsync(
     async (
       req: Request<unknown, unknown, ISignin>,
@@ -184,6 +202,10 @@ export class AuthServices<T extends IUser> extends AuthKit {
           Date.now() - user.loginAttempts.date.getTime() > 15 * 60 * 1000;
 
         if (!lockTimePassed) {
+          res.cookie('x389kld', true, {
+            ...cookieOptions,
+            maxAge: 15 * 60 * 1000,
+          });
           return next(
             new ApiError(
               'Account locked due to multiple failed login attempts. Please try again after 15 minutes.',
