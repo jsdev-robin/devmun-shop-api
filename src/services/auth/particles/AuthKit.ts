@@ -1,19 +1,68 @@
 import { randomInt } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
-import { promises as fs } from 'fs';
 import jwt from 'jsonwebtoken';
-import { Model } from 'mongoose';
-import cloudinary from '../../../configs/cloudinary';
+import { Document, Model } from 'mongoose';
 import config from '../../../configs/config';
 import { nodeClient } from '../../../configs/redis';
 import ApiError from '../../../middlewares/errors/ApiError';
-import { IUser } from '../../../types/authTypes';
+import { IUser } from '../../../types/user';
 import HttpStatusCode from '../../../utils/HttpStatusCode';
 import { Crypto } from '../../security/CryptoServices';
-import { refreshTTL } from './CookieService';
+import { cookieOptions, enableSignature, refreshTTL } from './CookieService';
 import { TokenService } from './TokenService';
 
 export class AuthKit extends TokenService {
+  private getDeviceInfo = (req: Request) => {
+    const ua = req.useragent;
+    const deviceType = ua?.isSmartTV
+      ? 'smart-tv'
+      : ua?.isBot
+      ? 'bot'
+      : ua?.isMobileNative
+      ? 'mobile-native'
+      : ua?.isMobile
+      ? 'mobile'
+      : ua?.isTablet
+      ? 'tablet'
+      : ua?.isAndroidTablet
+      ? 'android-tablet'
+      : ua?.isiPad
+      ? 'ipad'
+      : ua?.isiPhone
+      ? 'iphone'
+      : ua?.isiPod
+      ? 'ipod'
+      : ua?.isKindleFire
+      ? 'kindle-fire'
+      : ua?.isDesktop
+      ? 'desktop'
+      : ua?.isWindows
+      ? 'windows'
+      : ua?.isMac
+      ? 'mac'
+      : ua?.isLinux
+      ? 'linux'
+      : ua?.isChromeOS
+      ? 'chromeos'
+      : ua?.isRaspberry
+      ? 'raspberry-pi'
+      : 'unknown';
+
+    return {
+      deviceType,
+      os: ua?.os ?? 'unknown',
+      browser: ua?.browser ?? 'unknown',
+      userAgent: req.headers['user-agent'] ?? 'unknown',
+    };
+  };
+
+  private getLocationInfo = (req: Request) => ({
+    city: req.ipinfo?.city || 'unknown',
+    country: req.ipinfo?.country || 'unknown',
+    lat: Number(req.ipinfo?.loc?.split(',')[0]) || 0,
+    lng: Number(req.ipinfo?.loc?.split(',')[1]) || 0,
+  });
+
   protected creatOtp = async (
     data: object,
     req: Request
@@ -58,64 +107,19 @@ export class AuthKit extends TokenService {
     return email.toLowerCase();
   };
 
-  protected storeSession = async <T extends { _id: string | number }>({
-    Model,
+  protected genEmailLog = ({
+    email,
     req,
-    user,
-    accessToken,
   }: {
-    Model: Model<T>;
+    email: string;
     req: Request;
-    user: T;
-    accessToken: string;
-  }): Promise<void> => {
-    try {
-      const hashedToken = Crypto.hmac(String(accessToken));
-
-      await Promise.all([
-        // Store session in Redis
-        (async () => {
-          const p = nodeClient.multi();
-
-          p.SADD(`${user._id}:session`, hashedToken);
-          p.json.SET(`${user._id}`, '$', Object(user));
-          p.EXPIRE(`${user._id}:session`, refreshTTL * 24 * 60 * 60);
-          p.EXPIRE(`${user._id}`, refreshTTL * 24 * 60 * 60);
-
-          await p.exec();
-        })(),
-
-        // Store session info in MongoDB
-        Model.findByIdAndUpdate(
-          user._id,
-          {
-            $push: {
-              sessionToken: {
-                token: hashedToken,
-                device: req.useragent?.os ?? 'unknown',
-                ip: req.ip ?? 'unknown',
-                browser: req.useragent?.browser ?? 'unknown',
-                location: req.ipinfo?.location ?? 'unknown',
-                city: req.ipinfo?.city ?? 'unknown',
-                region: req.ipinfo?.region ?? 'unknown',
-                country: req.ipinfo?.country ?? 'unknown',
-                loc: req.ipinfo?.loc ?? 'unknown',
-                org: req.ipinfo?.org ?? 'unknown',
-                postal: req.ipinfo?.postal ?? 'unknown',
-                timezone: req.ipinfo?.timezone ?? 'unknown',
-              },
-            },
-          },
-          { new: true }
-        ).exec(),
-      ]);
-    } catch {
-      throw new ApiError(
-        'Failed to store session.',
-        HttpStatusCode.INTERNAL_SERVER_ERROR
-      );
-    }
-  };
+  }) => ({
+    email,
+    verified: true,
+    verifiedAt: Date.now(),
+    ip: req.ip,
+    userAgent: req.headers['user-agent'],
+  });
 
   protected rotateSession = async <T extends IUser>({
     model,
@@ -158,6 +162,66 @@ export class AuthKit extends TokenService {
     } catch {
       throw new ApiError(
         'Failed to rotate session. Please try again later.',
+        HttpStatusCode.INTERNAL_SERVER_ERROR
+      );
+    }
+  };
+
+  protected storeSession = async <T extends { _id: string | number }>({
+    Model,
+    req,
+    user,
+    accessToken,
+  }: {
+    Model: Model<T>;
+    req: Request;
+    user: T;
+    accessToken: string;
+  }): Promise<void> => {
+    try {
+      const hashedToken = Crypto.hmac(String(accessToken));
+
+      await Promise.all([
+        // Store session in Redis
+        (async () => {
+          const p = nodeClient.multi();
+
+          p.SADD(`${user._id}:session`, hashedToken);
+          p.json.SET(`${user._id}`, '$', Object(user));
+          p.EXPIRE(`${user._id}:session`, refreshTTL * 24 * 60 * 60);
+          p.EXPIRE(`${user._id}`, refreshTTL * 24 * 60 * 60);
+
+          await p.exec();
+        })(),
+
+        // Store session info in MongoDB
+        Model.findByIdAndUpdate(
+          user._id,
+          {
+            $push: {
+              sessions: {
+                token: hashedToken,
+                ip: req.ip,
+                deviceInfo: this.getDeviceInfo(req),
+                location: this.getLocationInfo(req),
+                loggedInAt: new Date(),
+                expiresAt: new Date(
+                  Date.now() + refreshTTL * 24 * 60 * 60 * 1000
+                ),
+                revoked: false,
+                revokedAt: null,
+                lastActivityAt: new Date(),
+                riskScore: 0,
+                trustedDevice: false,
+              },
+            },
+          },
+          { new: true }
+        ).exec(),
+      ]);
+    } catch {
+      throw new ApiError(
+        'Failed to store session.',
         HttpStatusCode.INTERNAL_SERVER_ERROR
       );
     }
@@ -329,47 +393,6 @@ export class AuthKit extends TokenService {
       : forbiddenFields.map((f) => `-${f}`).join(' ');
   };
 
-  protected uploadAvatar = async (req: Request) => {
-    if (req.file) {
-      const id = `user-avatar_${Crypto.hmac(req.self?._id)}`;
-      const path = req.file.path;
-
-      try {
-        const [, result] = await Promise.all([
-          cloudinary.uploader.destroy(id, {
-            resource_type: 'image',
-          }),
-          cloudinary.uploader.upload(path, {
-            folder: 'user-avatar',
-            public_id: id,
-            use_filename: true,
-            unique_filename: false,
-            overwrite: true,
-            resource_type: 'image',
-          }),
-        ]);
-
-        await fs
-          .unlink(path)
-          .catch((err) => console.error('Failed to delete temp file:', err));
-
-        const avatar = {
-          url: result.secure_url,
-          public_id: result.public_id,
-        };
-
-        return avatar;
-      } catch (error) {
-        await fs
-          .unlink(path)
-          .catch((err) =>
-            console.error('Failed to delete temp file after error:', err)
-          );
-        throw error;
-      }
-    }
-  };
-
   protected validateCurrentPassword = async <T extends IUser>(
     user: T | null | undefined,
     password: string,
@@ -402,5 +425,59 @@ export class AuthKit extends TokenService {
       return false;
     }
     return true;
+  };
+
+  protected enforceLockPolicy = async (
+    res: Response,
+    next: NextFunction,
+    user: (Document<unknown, unknown, IUser> & IUser) | null
+  ): Promise<void> => {
+    if (!user) return;
+
+    if (user?.loginAttempts?.lock) {
+      const lockTimePassed =
+        user.loginAttempts.date &&
+        Date.now() - user.loginAttempts.date.getTime() > 15 * 60 * 1000;
+
+      if (!lockTimePassed) {
+        res.cookie('x389kld', Crypto.randomHexString(), {
+          ...cookieOptions,
+          maxAge: 15 * 60 * 1000,
+        });
+        return next(
+          new ApiError(
+            'Account locked due to multiple failed login attempts. Please try again after 15 minutes.',
+            HttpStatusCode.LOCKED
+          )
+        );
+      }
+    }
+
+    // Check account lock first
+    if (user?.loginAttempts?.lock) {
+      const lockTimePassed =
+        user.loginAttempts.date &&
+        Date.now() - user.loginAttempts.date.getTime() > 15 * 60 * 1000;
+
+      if (!lockTimePassed) {
+        res.cookie('x389kld', true, {
+          ...cookieOptions,
+          ...enableSignature,
+          maxAge: 15 * 60 * 1000,
+        });
+        return next(
+          new ApiError(
+            'Account locked due to multiple failed login attempts. Please try again after 15 minutes.',
+            HttpStatusCode.LOCKED
+          )
+        );
+      }
+
+      // Reset if lock expired
+      user.loginAttempts.lock = false;
+      user.loginAttempts.attempts = 0;
+      user.loginAttempts.date = null;
+      await user.save();
+    }
   };
 }

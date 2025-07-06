@@ -9,7 +9,7 @@ interface IEmailData {
   };
 }
 
-export class SendMail {
+export class SendMailServices {
   private readonly data: IEmailData;
 
   constructor(data: IEmailData) {

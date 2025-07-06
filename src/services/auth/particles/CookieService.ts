@@ -2,7 +2,7 @@ import { CookieOptions, Response } from 'express';
 import config from '../../../configs/config';
 import ApiError from '../../../middlewares/errors/ApiError';
 import HttpStatusCode from '../../../utils/HttpStatusCode';
-import { IAuthCookies } from '../types/auth-types';
+import { IAuthCookies } from '../types/authTypes';
 
 export const accessTTL: number = parseInt(
   config.ACCESS_TOKEN_EXPIRE ?? '3',

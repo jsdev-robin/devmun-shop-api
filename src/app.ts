@@ -11,15 +11,11 @@ import path from 'path';
 import config from './configs/config';
 import ApiError from './middlewares/errors/ApiError';
 import globalErrorHandler from './middlewares/errors/globalError';
-import {
-  initializePassport,
-  passport,
-} from './middlewares/passports/passports';
+import { rateLimiter } from './middlewares/rateLimiter';
 import HttpStatusCode from './utils/HttpStatusCode';
 import Status from './utils/status';
 
-import shopAuthRouter from './apps/shop/routes/shopAuthRoutes';
-import shopProductRouter from './apps/shop/routes/shopProductRoutes';
+import sellerAuthRouter from './routes/sellerAuthRoute';
 
 const app: Application = express();
 
@@ -42,6 +38,10 @@ app.use(
     },
   })
 );
+
+// Apply the rate limiting middleware to all requests.
+app.use(rateLimiter());
+
 // Set security-related HTTP headers
 app.use(helmet());
 
@@ -51,9 +51,6 @@ app.set('trust proxy', 1);
 // Serving static files
 app.use(express.static(path.join(__dirname, './src/views')));
 app.use(express.static(path.join(__dirname, 'public')));
-
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
 
 // Parse request bodies
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -88,21 +85,6 @@ app.use(
   })
 );
 
-// Serialize user into the session
-initializePassport();
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Serialize user into the session
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-
-// Deserialize user from the session
-passport.deserializeUser((user: Express.User, done) => {
-  done(null, user);
-});
-
 app.get('/', (_, res) => {
   res.status(HttpStatusCode.OK).json({
     success: Status.SUCCESS,
@@ -111,17 +93,8 @@ app.get('/', (_, res) => {
   });
 });
 
-// app.get('/', (req, res) => {
-//   res.send(
-//     `<a href="/api/v1/dashboard/user/auth/google">Login with Google</a>`
-//   );
-// });
-
-// Global route
-
 // Shop route
-app.use('/v1/shop/user/auth', shopAuthRouter);
-app.use('/v1/shop', shopProductRouter);
+app.use('/v1/seller/auth', sellerAuthRouter);
 
 // Handle 404 errors
 app.all(/(.*)/, (req: Request, res: Response, next: NextFunction) => {

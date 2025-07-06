@@ -64,6 +64,7 @@ export const authSchema = {
       .isEmail()
       .withMessage('Please enter a valid email'),
     check('password').notEmpty().withMessage('Password is required'),
+    check('remember').optional().toBoolean(),
   ],
 
   // Password Management

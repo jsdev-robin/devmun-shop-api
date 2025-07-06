@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { ProcessEnv } from '../types/configs/config';
+import { ProcessEnv } from '../types/config';
 
 dotenv.config({ path: './.env' });
 

@@ -1,11 +1,12 @@
+import { timingSafeEqual } from 'crypto';
 import { Request } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../../../configs/config';
 import ApiError from '../../../middlewares/errors/ApiError';
-import { Role } from '../../../types/authTypes';
+import { UserRole } from '../../../types/user';
 import HttpStatusCode from '../../../utils/HttpStatusCode';
 import { Crypto } from '../../security/CryptoServices';
-import { IAuthCookies } from '../types/auth-types';
+import { IAuthCookies } from '../types/authTypes';
 import { CookieService } from './CookieService';
 
 export interface TokenSignature {
@@ -13,7 +14,7 @@ export interface TokenSignature {
   browser: string;
   device: string;
   id: string;
-  role: Role;
+  role: UserRole;
   remember: boolean;
   token: string;
 }
@@ -22,35 +23,46 @@ export class TokenService extends CookieService {
   constructor(options: { cookies: IAuthCookies }) {
     super(options);
   }
-  private getClientSignature(req: Request, id: string, role: string) {
+  private tokenSignature(req: Request, user: { id: string; role: string }) {
     return {
       ip: Crypto.hmac(String(req.ip)),
       browser: Crypto.hmac(String(req.useragent?.browser)),
       device: Crypto.hmac(String(req.useragent?.os)),
-      id,
-      role,
+      id: user.id,
+      role: user.role,
     };
   }
 
-  protected checkClientSignature(
+  protected checkTokenSignature(
     decoded: TokenSignature | null,
     req: Request
   ): boolean {
+    if (!decoded) return true;
+
+    const compare = (a: string, b: string): boolean => {
+      const aBuf = Buffer.from(a);
+      const bBuf = Buffer.from(b);
+
+      if (aBuf.length !== bBuf.length) return false;
+      return timingSafeEqual(aBuf, bBuf);
+    };
+
     return (
-      // decoded?.ip !== Crypto.hmac(String(req.ip)) ||
-      decoded?.device !== Crypto.hmac(String(req.useragent?.os)) ||
-      decoded?.browser !== Crypto.hmac(String(req.useragent?.browser))
+      // !compare(decoded.ip, Crypto.hmac(String(req.ip))) ||
+      !compare(decoded.device, Crypto.hmac(String(req.useragent?.os))) ||
+      !compare(decoded.browser, Crypto.hmac(String(req.useragent?.browser)))
     );
   }
 
-  protected rotateToken(
+  protected rotateToken = (
     req: Request,
-    id: string,
-    role: string,
-    remember: boolean
-  ): [string, string] {
+    data: { id: string; role: string; remember: boolean }
+  ): [string, string] => {
     try {
-      const clientSignature = this.getClientSignature(req, id, role);
+      const clientSignature = this.tokenSignature(req, {
+        id: data.id,
+        role: data.role,
+      });
 
       const accessToken = jwt.sign(
         { ...clientSignature },
@@ -62,7 +74,11 @@ export class TokenService extends CookieService {
       );
 
       const refreshToken = jwt.sign(
-        { ...clientSignature, remember, token: Crypto.hmac(accessToken) },
+        {
+          ...clientSignature,
+          remember: data.remember,
+          token: Crypto.hmac(accessToken),
+        },
         config.REFRESH_TOKEN,
         {
           expiresIn: config.REFRESH_TOKEN_EXPIRE,
@@ -77,5 +93,5 @@ export class TokenService extends CookieService {
         HttpStatusCode.INTERNAL_SERVER_ERROR
       );
     }
-  }
+  };
 }
