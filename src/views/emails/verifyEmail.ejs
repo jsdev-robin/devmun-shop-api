@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Email Verification - Devmun</title>
+    <style type="text/css">
+      body,
+      p,
+      h1,
+      h2,
+      h3,
+      a,
+      td {
+        margin: 0;
+        padding: 0;
+        font-weight: inherit;
+        line-height: 1.5;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Helvetica, Arial, sans-serif;
+        background-color: #f9fafb;
+        color: #374151;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        padding: 0;
+        margin: 0;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+      }
+
+      .email-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: #ffffff;
+        padding: 40px 48px;
+        text-align: center;
+        clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%);
+      }
+
+      /* Verification Notice */
+      .verification-notice {
+        background-color: #f0fdf4;
+        border-left: 4px solid #16a34a;
+        color: #166534;
+        padding: 16px 24px;
+        margin: 32px 40px 24px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      .email-logo {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        letter-spacing: 0.5px;
+      }
+
+      .email-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .email-subtitle {
+        font-size: 15px;
+        opacity: 0.9;
+        font-weight: 400;
+      }
+
+      .email-content {
+        padding: 0 40px 32px;
+        color: #374151;
+        font-size: 16px;
+      }
+
+      .email-content p {
+        margin-bottom: 20px;
+      }
+
+      .otp-box {
+        background-color: #f3f4f6;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e3a8a;
+        margin: 24px 0;
+        letter-spacing: 2px;
+        border: 1px dashed #9ca3af;
+      }
+
+      .action-button {
+        display: inline-block;
+        background-color: #2563eb;
+        color: #ffffff !important;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-align: center;
+        transition: background-color 0.2s ease;
+        margin-top: 16px;
+      }
+
+      .action-button:hover {
+        background-color: #1d4ed8;
+      }
+
+      .email-footer {
+        padding: 32px 40px;
+        text-align: center;
+        font-size: 14px;
+        color: #6b7280;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .footer-links {
+        margin-bottom: 16px;
+      }
+
+      .footer-links a {
+        color: #2563eb;
+        text-decoration: none;
+        margin: 0 8px;
+        font-weight: 500;
+      }
+
+      .footer-links a:hover {
+        text-decoration: underline;
+      }
+
+      .footer-text {
+        margin-top: 8px;
+        font-size: 13px;
+        color: #9ca3af;
+      }
+
+      @media only screen and (max-width: 600px) {
+        .email-header {
+          padding: 32px 24px;
+          clip-path: polygon(0 0, 100% 0, 100% 90%, 0% 100%);
+        }
+
+        .email-content {
+          padding: 0 24px 24px;
+        }
+
+        .verification-notice {
+          margin: 24px 20px 16px;
+          padding: 12px 16px;
+        }
+
+        .otp-box {
+          font-size: 24px;
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body style="background-color: #f9fafb; padding: 24px 12px">
+    <div class="email-container" role="main" aria-label="Email Verification">
+      <div class="email-header">
+        <div class="email-logo">Devmun</div>
+        <h1 class="email-title">Email Verification</h1>
+        <p class="email-subtitle">Verify Your Email to Complete Registration</p>
+      </div>
+
+      <!-- Verification Notice -->
+      <div class="verification-notice" role="alert">
+        <strong>Almost there!</strong> Please verify your email address to
+        activate your account and access all features.
+      </div>
+
+      <div class="email-content">
+        <p>Hello <%= data.user.name %>,</p>
+
+        <p>
+          Thank you for signing up with Devmun! To complete your registration
+          and ensure the security of your account, please use the following
+          One-Time Password (OTP):
+        </p>
+
+        <div class="otp-box"><%= data.otp %></div>
+
+        <p>
+          This verification code will expire in <strong>10 minutes</strong>. For
+          your security, please do not share this code with anyone.
+        </p>
+
+        <p style="font-size: 14px; color: #6b7280">
+          <strong>Note:</strong> If you didn't request this verification, you
+          can safely ignore this email or contact our support team if you have
+          any concerns.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="email-footer">
+        <div class="footer-links">
+          <a href="<%= data.helpUrl || '#' %>">Help Center</a>
+          <a href="<%= data.privacyUrl || '#' %>">Privacy</a>
+          <a href="<%= data.termsUrl || '#' %>">Terms</a>
+          <a href="<%= data.unsubscribeUrl || '#' %>">Unsubscribe</a>
+        </div>
+        <p>© 2025 Devmun. All rights reserved.</p>
+        <p class="footer-text">
+          Devmun, Kewarjani, Manikganj-1800, Dhaka, BD<br />
+          This email was sent to <%= data.user.email %> as part of your
+          registration process.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

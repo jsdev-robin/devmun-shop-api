@@ -1,0 +1,379 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Security Alert: Your Email Was Changed</title>
+    <style type="text/css">
+      /* Base Styles */
+      body,
+      p,
+      h1,
+      h2,
+      h3,
+      a,
+      td {
+        margin: 0;
+        padding: 0;
+        font-weight: inherit;
+        line-height: 1.5;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Helvetica, Arial, sans-serif;
+        background-color: #f9fafb;
+        color: #374151;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        padding: 0;
+        margin: 0;
+      }
+
+      /* Email Container */
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+      }
+
+      /* Header */
+      .email-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: #ffffff;
+        padding: 40px 48px;
+        text-align: center;
+        clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%);
+      }
+
+      .email-logo {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        letter-spacing: 0.5px;
+      }
+
+      .email-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .email-subtitle {
+        font-size: 15px;
+        opacity: 0.9;
+        font-weight: 400;
+      }
+
+      /* Alert Banner */
+      .security-alert {
+        background-color: #fef2f2;
+        border-left: 4px solid #dc2626;
+        color: #991b1b;
+        padding: 16px 24px;
+        margin: 32px 40px 24px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      /* Content */
+      .email-content {
+        padding: 0 40px 32px;
+        color: #374151;
+        font-size: 16px;
+      }
+
+      .email-content p {
+        margin-bottom: 20px;
+      }
+
+      /* Details Card */
+      .change-details {
+        background-color: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 24px;
+        margin: 24px 0 32px;
+      }
+
+      .detail-row {
+        display: flex;
+        margin-bottom: 16px;
+        align-items: flex-start;
+      }
+
+      .detail-label {
+        font-weight: 600;
+        color: #1e40af;
+        min-width: 120px;
+        display: inline-block;
+        font-size: 15px;
+      }
+
+      .detail-value {
+        font-weight: 500;
+        color: #374151;
+        word-break: break-word;
+      }
+
+      /* Action Button */
+      .action-container {
+        text-align: center;
+        margin: 32px 0;
+      }
+
+      .action-button {
+        display: inline-block;
+        background-color: #2563eb;
+        color: #ffffff !important;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        padding: 14px 36px;
+        border-radius: 8px;
+        text-align: center;
+        transition: background-color 0.2s ease;
+      }
+
+      .action-button:hover {
+        background-color: #1d4ed8;
+      }
+
+      /* Divider */
+      .divider {
+        border: 0;
+        height: 1px;
+        background-color: #e5e7eb;
+        margin: 32px 0;
+      }
+
+      /* Footer */
+      .email-footer {
+        padding: 32px 40px;
+        text-align: center;
+        font-size: 14px;
+        color: #6b7280;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .footer-links {
+        margin-bottom: 16px;
+      }
+
+      .footer-links a {
+        color: #2563eb;
+        text-decoration: none;
+        margin: 0 8px;
+        font-weight: 500;
+      }
+
+      .footer-links a:hover {
+        text-decoration: underline;
+      }
+
+      .footer-text {
+        margin-top: 8px;
+        font-size: 13px;
+        color: #9ca3af;
+      }
+
+      /* Responsive */
+      @media only screen and (max-width: 600px) {
+        .email-container {
+          border-radius: 0;
+          border: none;
+        }
+
+        .email-header {
+          padding: 32px 24px;
+          clip-path: polygon(0 0, 100% 0, 100% 90%, 0% 100%);
+        }
+
+        .email-logo {
+          font-size: 20px;
+        }
+
+        .email-title {
+          font-size: 18px;
+        }
+
+        .email-subtitle {
+          font-size: 14px;
+        }
+
+        .security-alert {
+          margin: 24px 20px 16px;
+          padding: 12px 16px;
+        }
+
+        .email-content {
+          padding: 0 24px 24px;
+          font-size: 15px;
+        }
+
+        .change-details {
+          padding: 20px;
+        }
+
+        .detail-row {
+          flex-direction: column;
+          margin-bottom: 12px;
+        }
+
+        .detail-label {
+          min-width: auto;
+          margin-bottom: 4px;
+        }
+
+        .action-button {
+          width: 100%;
+          padding: 14px;
+          box-sizing: border-box;
+        }
+      }
+    </style>
+  </head>
+  <body style="background-color: #f9fafb; padding: 24px 12px">
+    <!--[if mso]>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+            <td style="padding: 20px 0; background-color: #f9fafb;">
+    <![endif]-->
+
+    <div
+      class="email-container"
+      role="main"
+      aria-label="Old Email Security Notification"
+    >
+      <!-- Header -->
+      <div class="email-header">
+        <div class="email-logo">Devmun</div>
+        <h1 class="email-title">SECURITY ALERT</h1>
+        <p class="email-subtitle">Your Email Address Has Been Changed</p>
+      </div>
+
+      <!-- Security Alert -->
+      <div class="security-alert" role="alert">
+        <strong>Important Security Notice:</strong> The email address linked to
+        your account has been changed. If you did not authorize this change,
+        please take immediate action.
+      </div>
+
+      <!-- Content -->
+      <div class="email-content">
+        <p>Hello <%= data.user.name %>,</p>
+
+        <p>
+          For your security, we wanted to notify you that the email address
+          associated with your account has been updated from this address to
+          <strong><%= data.newEmail %></strong>.
+        </p>
+
+        <div class="change-details">
+          <div class="detail-row">
+            <span class="detail-label">Previous Email:</span>
+            <span class="detail-value"><%= data.user.email %></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">New Email:</span>
+            <span class="detail-value"><%= data.newEmail %></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Changed On:</span>
+            <span class="detail-value"><%= data.time %></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Location:</span>
+            <span class="detail-value"><%= data.location || 'Unknown' %></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Device:</span>
+            <span class="detail-value"><%= data.device %></span>
+          </div>
+        </div>
+
+        <div class="action-container">
+          <a
+            href="<%= data.securityUrl %>"
+            class="action-button"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Secure Your Account
+          </a>
+        </div>
+
+        <hr class="divider" />
+
+        <h3
+          style="
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1f2937;
+          "
+        >
+          What to do next:
+        </h3>
+
+        <ul style="margin-left: 20px; margin-bottom: 24px">
+          <li style="margin-bottom: 8px">
+            If you authorized this change, no further action is needed.
+          </li>
+          <li style="margin-bottom: 8px">
+            If you did not make this change, please click the button above to
+            secure your account immediately.
+          </li>
+          <li style="margin-bottom: 8px">
+            Consider enabling two-factor authentication for extra protection.
+          </li>
+          <li>
+            Review your recent account activity for any suspicious behavior.
+          </li>
+        </ul>
+
+        <p
+          style="
+            font-size: 14px;
+            color: #6b7280;
+            border-left: 3px solid #e5e7eb;
+            padding-left: 12px;
+          "
+        >
+          <strong>Note:</strong> For your protection, the security link above
+          will expire in 24 hours. If you need assistance, please contact our
+          support team.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="email-footer">
+        <div class="footer-links">
+          <a href="<%= data.helpUrl || '#' %>">Help Center</a>
+          <a href="<%= data.privacyUrl || '#' %>">Privacy</a>
+          <a href="<%= data.termsUrl || '#' %>">Terms</a>
+          <a href="<%= data.unsubscribeUrl || '#' %>">Unsubscribe</a>
+        </div>
+        <p>© 2025 Devmun. All rights reserved.</p>
+        <p class="footer-text">
+          Devmun, Kewarjani, Manikganj-1800, Dhaka, BD<br />
+          This email was sent to <%= data.user.email %>. Please do not reply to
+          this message.
+        </p>
+      </div>
+    </div>
+
+    <!--[if mso]>
+            </td>
+        </tr>
+    </table>
+    <![endif]-->
+  </body>
+</html>
