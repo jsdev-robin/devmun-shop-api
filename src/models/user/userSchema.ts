@@ -43,7 +43,11 @@ export const UserSchema = new Schema<IUser>(
     bannedAt: Date,
     deletedAt: Date,
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
 
 // Hash password before saving

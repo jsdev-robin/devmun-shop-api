@@ -1,4 +1,4 @@
-import { check, query } from 'express-validator';
+import { check, param, query } from 'express-validator';
 
 export const authSchema = {
   //  Account Registration
@@ -73,6 +73,10 @@ export const authSchema = {
     check('remember').optional().toBoolean(),
   ],
 
+  signoutSession: [
+    param('token').trim().notEmpty().withMessage('Token is required'),
+  ],
+
   // Password Management
   updatePassword: [
     check('currentPassword')
@@ -121,10 +125,6 @@ export const authSchema = {
     check('password')
       .notEmpty()
       .withMessage('Password is required for verification'),
-  ],
-
-  updatingEmail: [
-    query('token').trim().notEmpty().withMessage('Token is required'),
   ],
 
   // User Preferences

@@ -174,18 +174,9 @@ export class AuthEngine extends TokenService {
             $push: {
               sessions: {
                 token: hashedToken,
-                ip: req.ip,
                 deviceInfo: this.getDeviceInfo(req),
                 location: this.getLocationInfo(req),
-                loggedInAt: new Date(),
-                expiresAt: new Date(
-                  Date.now() + refreshTTL * 24 * 60 * 60 * 1000
-                ),
-                revoked: false,
-                revokedAt: null,
-                lastActivityAt: new Date(),
-                riskScore: 0,
-                trustedDevice: false,
+                ip: req.ip,
               },
             },
           },
@@ -252,6 +243,7 @@ export class AuthEngine extends TokenService {
   ): Promise<void> => {
     try {
       const { id, token } = payload;
+
       await Promise.all([
         // Redis session removal
         (async () => {
@@ -266,11 +258,11 @@ export class AuthEngine extends TokenService {
         })(),
 
         // DB session token status update
-        Model.findByIdAndUpdate(
+        await Model.findByIdAndUpdate(
           id,
           {
             $set: {
-              'sessionToken.$[elem].status': false,
+              'sessions.$[elem].status': false,
             },
           },
           {
@@ -285,6 +277,34 @@ export class AuthEngine extends TokenService {
     } catch {
       throw new ApiError(
         'Failed to remove session. Please try again later.',
+        HttpStatusCode.INTERNAL_SERVER_ERROR
+      );
+    }
+  };
+
+  protected removeAllSessions = async <T extends IUser>(
+    Model: Model<T>,
+    payload: {
+      id: string;
+    }
+  ): Promise<void> => {
+    try {
+      const { id } = payload;
+      await Promise.all([
+        // Clear all Redis session and user cache
+        (async () => {
+          const p = nodeClient.multi();
+          p.DEL(`${id}:session`);
+          p.DEL(`${id}`);
+          await p.exec();
+        })(),
+
+        // Unset all sessionToken entries from database
+        Model.updateOne({ _id: id }, { $unset: { sessions: '' } }).exec(),
+      ]);
+    } catch {
+      throw new ApiError(
+        'Failed to remove all sessions.',
         HttpStatusCode.INTERNAL_SERVER_ERROR
       );
     }

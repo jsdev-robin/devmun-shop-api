@@ -53,6 +53,22 @@ router.use(
 );
 
 router.post('/signout', sellerAuthController.signout);
+router.post(
+  '/sessions/:token/revoke',
+  authSchema.signoutSession,
+  runSchema,
+  sellerAuthController.signoutSession
+);
+
+router.post(
+  '/sessions/revoke-all',
+  rateLimiter({
+    max: 5,
+    message:
+      'You’ve made too many requests to revoke all sessions. Please wait 15 minutes and try again.',
+  }),
+  sellerAuthController.signoutAllSession
+);
 
 // // ================== Manage user information ==================
 router.route('/me').get(sellerAuthController.getProfile);

@@ -451,7 +451,7 @@ export class AuthServices<T extends IUser> extends AuthEngine {
 
       try {
         await this.removeASession(res, this.model, {
-          id: user.id,
+          id: user._id,
           token: Crypto.hmac(accessToken),
         });
 
@@ -463,6 +463,41 @@ export class AuthServices<T extends IUser> extends AuthEngine {
         this.clearAllCookies(res);
         next(error);
       }
+    }
+  );
+
+  public signoutSession = catchAsync(
+    async (req: Request, res: Response): Promise<void> => {
+      // Extract the session token from request parameters
+      const { token } = req.params;
+      const user = req.self;
+
+      await this.removeASession(res, this.model, {
+        id: user._id,
+        token: token,
+      });
+
+      // Send a success response indicating logout completion
+      res.status(HttpStatusCode.OK).json({
+        status: Status.SUCCESS,
+        message: 'You have been successfully logged out.',
+      });
+    }
+  );
+
+  public signoutAllSession = catchAsync(
+    async (req: Request, res: Response): Promise<void> => {
+      const user = req.self;
+
+      await this.removeAllSessions(this.model, {
+        id: user.id,
+      });
+
+      this.clearAllCookies(res);
+      res.status(HttpStatusCode.OK).json({
+        status: Status.SUCCESS,
+        message: 'You have been successfully logged out.',
+      });
     }
   );
 
