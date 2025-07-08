@@ -310,6 +310,30 @@ export class AuthEngine extends TokenService {
     }
   };
 
+  protected sanitizeFields = <T extends Record<string, unknown>>(
+    query: T,
+    key: keyof T = 'fields' as keyof T,
+    forbiddenFields: string[] = ['password', 'email', 'normalizeMail']
+  ): string => {
+    const raw = query[key];
+    if (typeof raw !== 'string' || !raw.trim()) {
+      return forbiddenFields.map((f) => `-${f}`).join(' ');
+    }
+
+    const allowedSet = new Set(
+      raw
+        .split(',')
+        .map((f) => f.trim())
+        .filter(Boolean)
+        .map((f) => f.replace(/^[-+]/, ''))
+    );
+
+    forbiddenFields.forEach((field) => allowedSet.delete(field));
+    return allowedSet.size > 0
+      ? [...allowedSet].join(' ')
+      : forbiddenFields.map((f) => `-${f}`).join(' ');
+  };
+
   protected sessionUnauthorized = (res: Response, next: NextFunction) => {
     this.clearAllCookies(res);
     return next(

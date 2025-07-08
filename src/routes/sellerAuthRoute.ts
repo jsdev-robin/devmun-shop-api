@@ -73,4 +73,11 @@ router.post(
 // // ================== Manage user information ==================
 router.route('/me').get(sellerAuthController.getProfile);
 
+router.get(
+  '/me/fields',
+  authSchema.getFields,
+  runSchema,
+  sellerAuthController.getProfileFields
+);
+
 export default router;

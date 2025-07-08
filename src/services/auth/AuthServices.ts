@@ -517,6 +517,37 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       });
     }
   );
+
+  public getProfileFields = catchAsync(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      const query = this.sanitizeFields(req.query, 'fields');
+
+      // Explicitly include settings fields in projection
+      const user = await this.model
+        .findById(req.self?._id)
+        .select(String(query).split(',').join(' '))
+        .lean()
+        .exec();
+
+      if (!user) {
+        return next(
+          new ApiError(
+            'No user found. Please log in again to access your account.',
+            HttpStatusCode.NOT_FOUND
+          )
+        );
+      }
+
+      // Return only what was requested (or add warning if you need to keep current behavior)
+      res.status(HttpStatusCode.OK).json({
+        status: Status.SUCCESS,
+        message: 'User fields retrieved successfully',
+        data: {
+          user,
+        },
+      });
+    }
+  );
 }
 
 export default AuthServices;
