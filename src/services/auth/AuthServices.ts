@@ -12,6 +12,7 @@ import Status from '../../utils/status';
 import { SendMailServices } from '../email/SendMailServices';
 import { Crypto, Decipheriv } from '../security/CryptoServices';
 import { AuthEngine } from './particles/AuthEngine';
+import { TokenSignature } from './particles/TokenService';
 import {
   AuthServiceOptions,
   ISignin,
@@ -178,7 +179,8 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       }
 
       // Get current failed login attempts from cache
-      const newAttempts = await nodeClient.get(Crypto.hash(req.ip ?? ''));
+      const key = req.ip ?? '' + this.getDeviceInfo(req);
+      const newAttempts = await nodeClient.get(Crypto.hash(key));
 
       // Calculate TTL (Time-To-Live) for lock if needed
       const TTL = Number(newAttempts) > 5 ? Number(newAttempts) - 5 : 1;
@@ -186,7 +188,7 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       // If attempts exceed threshold, enforce lock
       if (newAttempts && Number(newAttempts) >= 5) {
         await this.enforceLockPolicy(res, {
-          key: req.ip ?? '',
+          key: key,
           TTL,
         });
         return next(
@@ -208,7 +210,7 @@ export class AuthServices<T extends IUser> extends AuthEngine {
 
   public signin = catchAsync(
     async (
-      req: Request<unknown, unknown, ISignin>,
+      req: Request<ParamsDictionary, unknown, ISignin>,
       res: Response,
       next: NextFunction
     ): Promise<void> => {
@@ -224,7 +226,7 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       // Validate user existence and password
       if (!user || !(await user.isPasswordValid(password))) {
         await this.enforceLockPolicy(res, {
-          key: req.ip ?? '',
+          key: req.ip ?? '' + this.getDeviceInfo(req),
           TTL: 1,
         });
         return next(
@@ -246,6 +248,153 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       next();
     }
   );
+
+  public createSession = (url?: string) =>
+    catchAsync(
+      async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+      ): Promise<void> => {
+        const user = req.self;
+        const remember = req.remember;
+        const redirect = req.redirect;
+
+        // Generate access and refresh tokens
+        const [accessToken, refreshToken] = this.rotateToken(req, {
+          id: user._id,
+          role: user.role,
+          remember: remember,
+        });
+
+        // Set access and refresh tokens as cookies
+        res.cookie(...this.createAccessCookie(accessToken, remember));
+        res.cookie(...this.createRefreshCookie(refreshToken, remember));
+
+        try {
+          // Store session in Redis and database concurrently
+          await this.storeSession({
+            req,
+            Model: this.model,
+            payload: {
+              user,
+              accessToken,
+            },
+          });
+
+          // Handle response: either redirect or JSON response
+          if (redirect) {
+            res.redirect(`${url}?role=${user?.role}`);
+          } else {
+            res.status(HttpStatusCode.OK).json({
+              status: Status.SUCCESS,
+              message: `Welcome back ${user?.firstName}.`,
+              role: user?.role ?? 'user',
+            });
+          }
+        } catch (error) {
+          this.clearAllCookies(res);
+          next(error);
+        }
+      }
+    );
+
+  public validateToken = catchAsync(
+    async (
+      req: Request<ParamsDictionary, unknown, unknown> & {
+        userId?: string | undefined;
+        accessToken?: string | undefined;
+      },
+      res: Response,
+      next: NextFunction
+    ): Promise<void> => {
+      const accessCookie = req.signedCookies[this.getAccessCookieConfig().name];
+
+      // If the access token is missing, throw an unauthorized error
+      if (!accessCookie) {
+        return this.sessionUnauthorized(res, next);
+      }
+
+      try {
+        // Verify the access token and decode the payload
+        const decoded = jwt.verify(accessCookie, config.ACCESS_TOKEN) as {
+          id: string;
+        } & TokenSignature;
+
+        // Attach user ID and access token to the request object
+        req.userId = decoded?.id;
+        req.accessToken = accessCookie;
+
+        // Validate the decrypted IP against the request IP
+        if (!decoded || this.checkTokenSignature(decoded, req)) {
+          return this.sessionUnauthorized(res, next);
+        }
+
+        next();
+      } catch (error) {
+        this.clearAllCookies(res);
+        next(error);
+      }
+    }
+  );
+
+  public requireAuth = catchAsync(
+    async (
+      req: Request<unknown, unknown, unknown> & {
+        userId?: string | undefined;
+        accessToken?: string | undefined;
+      },
+      res: Response,
+      next: NextFunction
+    ): Promise<void> => {
+      // Get credentials from request
+      const { userId, accessToken } = req;
+
+      // Query session and user data from Redis
+      const p = nodeClient.multi();
+
+      p.SISMEMBER(`${userId}:session`, Crypto.hmac(String(accessToken)));
+      p.json.GET(`${userId}`);
+
+      const [sessionToken, cachedUser] = await p.exec();
+
+      // Invalidate if session/user not found
+      if (!sessionToken || !cachedUser) {
+        return this.sessionUnauthorized(res, next);
+      }
+
+      // Resolve user from Redis or fallback to database
+      const user = cachedUser || (await this.model.findById(userId).exec());
+
+      if (!user) {
+        return next(
+          new ApiError(
+            "We couldn't find your account. Please contact support if you believe this is an error.",
+            HttpStatusCode.NOT_FOUND
+          )
+        );
+      }
+
+      req.self = user;
+      next();
+    }
+  );
+
+  public restrictTo = (...roles: UserRole[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+      const user = req.self;
+      if (!user?.role || !roles.includes(user.role)) {
+        const error = new ApiError(
+          'You do not have permission to perform this action',
+          HttpStatusCode.FORBIDDEN
+        );
+        next(error);
+        return;
+      }
+
+      next();
+    };
+  };
 }
 
 export default AuthServices;
