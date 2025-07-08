@@ -8,7 +8,9 @@ import helmet from 'helmet';
 import ipinfo, { defaultIPSelector } from 'ipinfo-express';
 import morgan from 'morgan';
 import path from 'path';
+import swaggerUi from 'swagger-ui-express';
 import config from './configs/config';
+import * as swaggerDocument from './docs/swagger-output.json';
 import ApiError from './middlewares/errors/ApiError';
 import globalErrorHandler from './middlewares/errors/globalError';
 import { rateLimiter } from './middlewares/rateLimiter';
@@ -23,6 +25,8 @@ const app: Application = express();
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Session middleware
 app.use(

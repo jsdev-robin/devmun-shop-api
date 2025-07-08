@@ -6,13 +6,6 @@ export interface ILocalizedString {
   [locale: string]: string;
 }
 
-export interface IName {
-  first?: string;
-  last?: string;
-  full?: string;
-  localized?: ILocalizedString;
-}
-
 export interface IEmail {
   email?: string;
   verified?: boolean;
@@ -154,8 +147,8 @@ export interface IComplianceFlags {
 }
 
 export interface IUser extends Document {
-  name?: IName;
-  username?: string;
+  firstName: string;
+  lastName: string;
   phones?: IPhone[];
   email?: string;
   normalizeMail?: string;
@@ -172,11 +165,6 @@ export interface IUser extends Document {
   behaviorAnalytics?: IBehaviorAnalytics;
   complianceFlags?: IComplianceFlags;
   emailChangeLog?: IEmail[];
-  loginAttempts: {
-    attempts: number;
-    lock: boolean;
-    date: Date | null;
-  };
   isActive?: boolean;
   isBanned?: boolean;
   banReason?: string;

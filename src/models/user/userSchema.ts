@@ -13,7 +13,6 @@ import {
   ComplianceFlagsSchema,
   EmailSchema,
   MFAFactorSchema,
-  NameSchema,
   NotificationPreferenceSchema,
   PermissionOverrideSchema,
   PhoneSchema,
@@ -24,10 +23,17 @@ import {
 
 export const UserSchema = new Schema<IUser>(
   {
-    name: NameSchema,
-    username: String,
-    email: String,
-    normalizeMail: String,
+    firstName: String,
+    lastName: String,
+    email: {
+      type: String,
+      unique: true,
+    },
+    normalizeMail: {
+      type: String,
+      unique: true,
+      select: false,
+    },
     password: String,
     primaryPhone: String,
     phones: [PhoneSchema],
@@ -48,11 +54,6 @@ export const UserSchema = new Schema<IUser>(
       type: [EmailSchema],
       select: false,
     },
-    loginAttempts: {
-      attempts: { type: Number, default: 0 },
-      lock: { type: Boolean, default: false },
-      date: Date,
-    },
     isActive: Boolean,
     isBanned: Boolean,
     banReason: String,
@@ -61,16 +62,6 @@ export const UserSchema = new Schema<IUser>(
   },
   { timestamps: true }
 );
-
-UserSchema.pre('save', function (next) {
-  const cap = (str: string) =>
-    str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
-  if (this.name?.first && this.name?.last) {
-    this.name.full = (cap(this.name.first) + ' ' + cap(this.name.last)).trim();
-  }
-
-  next();
-});
 
 // Hash password before saving
 UserSchema.pre(

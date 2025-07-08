@@ -9,6 +9,9 @@ export const authSchema = {
       .withMessage('First name is required')
       .isLength({ min: 2, max: 32 })
       .withMessage('Must be 2-32 characters')
+      .custom(
+        (value) => value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+      )
       .escape(),
 
     check('lastName')
@@ -17,6 +20,9 @@ export const authSchema = {
       .withMessage('Last name is required')
       .isLength({ min: 2, max: 32 })
       .withMessage('Must be 2-32 characters')
+      .custom(
+        (value) => value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+      )
       .escape(),
 
     check('email')
@@ -392,22 +398,3 @@ export const authSchema = {
       .toBoolean(),
   ],
 };
-
-export const profileUpdateSchema = [
-  ...authSchema.profile,
-  ...authSchema.updateSettings,
-  ...authSchema.address,
-  ...authSchema.feedback,
-];
-
-export const {
-  signup,
-  verifyEmail,
-  signin,
-  updatePassword,
-  updateEmail,
-  updateSettings,
-  profile,
-  address,
-  feedback,
-} = authSchema;

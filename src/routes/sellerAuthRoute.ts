@@ -33,35 +33,15 @@ router.post(
 router.post(
   '/signin',
   rateLimiter({
-    max: 100,
+    max: 10,
     message:
       'Too many sign-in attempts. Please wait 15 minutes before trying again.',
   }),
   authSchema.signin,
   runSchema,
   sellerAuthController.accountLock,
-  sellerAuthController.signin,
-  sellerAuthController.createSession()
-);
-
-router.post('/refresh-token', sellerAuthController.refreshToken);
-
-router.use(
-  sellerAuthController.validateToken,
-  sellerAuthController.requireAuth,
-  sellerAuthController.restrictTo('seller', 'admin')
-);
-
-router.post('/signout', sellerAuthController.signout);
-router.post('/sessions/:token/revoke', sellerAuthController.signoutSession);
-router.post(
-  '/sessions/revoke-all',
-  rateLimiter({
-    max: 5,
-    message:
-      'You’ve made too many requests to revoke all sessions. Please wait 15 minutes and try again.',
-  }),
-  sellerAuthController.signoutAllSession
+  sellerAuthController.signin
+  // sellerAuthController.createSession()
 );
 
 export default router;

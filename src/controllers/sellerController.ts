@@ -1,13 +1,12 @@
 import { getUserModel } from '../models/user/userSchema';
 import AuthServices from '../services/auth/AuthServices';
-import { AuthServiceOptions } from '../services/auth/types/authTypes';
-import { IUser } from '../types/user';
 import {
-  accessCookieExp,
   cookieOptions,
   enableSignature,
-  refreshCookieExp,
-} from '../utils/cookieOptions';
+} from '../services/auth/particles/CookieService';
+import { AuthServiceOptions } from '../services/auth/types/authTypes';
+import { IUser } from '../types/user';
+import { accessCookieExp, refreshCookieExp } from '../utils/cookieOptions';
 
 const options: AuthServiceOptions<IUser> = {
   model: getUserModel('Seller'),

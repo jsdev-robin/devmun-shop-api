@@ -7,7 +7,6 @@ import {
   IEmail,
   ILocalizedString,
   IMFAFactor,
-  IName,
   INotificationPreference,
   IPermissionOverride,
   IPhone,
@@ -21,24 +20,6 @@ import {
 export const LocalizedStringSchema = new Schema<ILocalizedString>(
   {},
   { _id: false, strict: false }
-);
-
-export const NameSchema = new Schema<IName>(
-  {
-    first: {
-      type: String,
-      set: (val: string) =>
-        val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
-    },
-    last: {
-      type: String,
-      set: (val: string) =>
-        val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val,
-    },
-    full: String,
-    localized: LocalizedStringSchema,
-  },
-  { _id: false }
 );
 
 export const EmailSchema = new Schema<IEmail>(
