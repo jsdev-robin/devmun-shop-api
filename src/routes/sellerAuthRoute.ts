@@ -40,8 +40,21 @@ router.post(
   authSchema.signin,
   runSchema,
   sellerAuthController.accountLock,
-  sellerAuthController.signin
-  // sellerAuthController.createSession()
+  sellerAuthController.signin,
+  sellerAuthController.createSession()
 );
+
+router.post('/refresh-token', sellerAuthController.refreshToken);
+
+router.use(
+  sellerAuthController.validateToken,
+  sellerAuthController.requireAuth,
+  sellerAuthController.restrictTo('seller', 'admin')
+);
+
+router.post('/signout', sellerAuthController.signout);
+
+// // ================== Manage user information ==================
+router.route('/me').get(sellerAuthController.getProfile);
 
 export default router;

@@ -6,52 +6,35 @@ import {
   Schema,
 } from 'mongoose';
 import { IUser } from '../../types/user';
-import {
-  AccountChangeLogSchema,
-  AddressSchema,
-  BehaviorAnalyticsSchema,
-  ComplianceFlagsSchema,
-  EmailSchema,
-  MFAFactorSchema,
-  NotificationPreferenceSchema,
-  PermissionOverrideSchema,
-  PhoneSchema,
-  RoleSchema,
-  SessionSchema,
-  SocialAccountSchema,
-} from './particles/schema';
+import { SessionSchema } from './particles/schema';
 
 export const UserSchema = new Schema<IUser>(
   {
-    firstName: String,
-    lastName: String,
+    firstName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
     email: {
       type: String,
       unique: true,
+      required: true,
+      trim: true,
+      lowercase: true,
     },
     normalizeMail: {
       type: String,
       unique: true,
+      required: true,
+      trim: true,
+      lowercase: true,
       select: false,
     },
-    password: String,
-    primaryPhone: String,
-    phones: [PhoneSchema],
-    socialAccounts: [SocialAccountSchema],
-    roles: [RoleSchema],
-    permissionOverrides: [PermissionOverrideSchema],
-    mfaFactors: [MFAFactorSchema],
-    addresses: [AddressSchema],
+    password: { type: String, select: false, required: true },
+    role: {
+      type: String,
+      enum: ['buyer', 'seller', 'admin', 'moderator'],
+      default: 'buyer',
+    },
     sessions: {
       type: [SessionSchema],
-      select: false,
-    },
-    notificationPreferences: [NotificationPreferenceSchema],
-    accountChangeLogs: [AccountChangeLogSchema],
-    behaviorAnalytics: BehaviorAnalyticsSchema,
-    complianceFlags: ComplianceFlagsSchema,
-    emailChangeLog: {
-      type: [EmailSchema],
       select: false,
     },
     isActive: Boolean,

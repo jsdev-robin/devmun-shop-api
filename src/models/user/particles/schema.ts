@@ -8,11 +8,8 @@ import {
   ILocalizedString,
   IMFAFactor,
   INotificationPreference,
-  IPermissionOverride,
   IPhone,
   IPhoneVerificationHistory,
-  IRole,
-  IRolePermission,
   ISession,
   ISocialAccount,
 } from '../../../types/user';
@@ -126,41 +123,6 @@ export const SessionSchema = new Schema<ISession>(
     lastActivityAt: Date,
     riskScore: Number,
     trustedDevice: Boolean,
-  },
-  { _id: false }
-);
-
-export const RolePermissionSchema = new Schema<IRolePermission>(
-  {
-    resource: String,
-    actions: [String],
-  },
-  { _id: false }
-);
-
-export const RoleSchema = new Schema<IRole>(
-  {
-    name: {
-      type: String,
-      enum: ['buyer', 'vendor', 'admin', 'moderator'],
-      default: 'buyer',
-    },
-    permissions: [RolePermissionSchema],
-    inheritedRoles: [
-      {
-        type: String,
-        enum: ['buyer', 'vendor', 'admin', 'moderator'],
-      },
-    ],
-  },
-  { _id: false }
-);
-
-export const PermissionOverrideSchema = new Schema<IPermissionOverride>(
-  {
-    resource: String,
-    actionsAllowed: [String],
-    actionsDenied: [String],
   },
   { _id: false }
 );

@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import config from '../../../configs/config';
 import { nodeClient } from '../../../configs/redis';
 import ApiError from '../../../middlewares/errors/ApiError';
+import { IUser } from '../../../types/user';
 import HttpStatusCode from '../../../utils/HttpStatusCode';
 import { Crypto } from '../../security/CryptoServices';
 import { cookieOptions, enableSignature, refreshTTL } from './CookieService';
@@ -142,37 +143,31 @@ export class AuthEngine extends TokenService {
     }
   };
 
-  protected storeSession = async <T extends { _id: string | number }>({
-    req,
-    Model,
-    payload,
-  }: {
-    req: Request;
-    Model: Model<T>;
+  protected storeSession = async <T extends { _id: string | number }>(
+    req: Request,
+    Model: Model<T>,
     payload: {
       user: T;
       accessToken: string;
-    };
-  }): Promise<void> => {
+    }
+  ): Promise<void> => {
     try {
       const { user, accessToken } = payload;
       const id = user._id;
       const hashedToken = Crypto.hmac(String(accessToken));
 
       await Promise.all([
-        // Store session in Redis
+        // Redis operations
         (async () => {
           const p = nodeClient.multi();
-
           p.SADD(`${id}:session`, hashedToken);
-          p.json.SET(`${id}`, '$', Object(user));
+          p.json.SET(`${id}`, '$', user);
           p.EXPIRE(`${id}:session`, refreshTTL * 24 * 60 * 60);
           p.EXPIRE(`${id}`, refreshTTL * 24 * 60 * 60);
-
           await p.exec();
         })(),
 
-        // Store session info in MongoDB
+        // MongoDB operations
         Model.findByIdAndUpdate(
           id,
           {
@@ -199,7 +194,97 @@ export class AuthEngine extends TokenService {
       ]);
     } catch {
       throw new ApiError(
-        'Failed to store session.',
+        'Failed to store session',
+        HttpStatusCode.INTERNAL_SERVER_ERROR
+      );
+    }
+  };
+
+  protected rotateSession = async <T extends IUser>(
+    Model: Model<T>,
+    payload: {
+      id: string;
+      oldToken: string;
+      newToken: string;
+    }
+  ): Promise<void> => {
+    try {
+      const { id, oldToken, newToken } = payload;
+      await Promise.all([
+        // Redis: replace old token with new one
+        (async () => {
+          const p = nodeClient.multi();
+          p.SREM(`${id}:session`, String(oldToken));
+          p.SADD(`${id}:session`, Crypto.hmac(String(newToken)));
+          p.EXPIRE(`${id}:session`, refreshTTL * 24 * 60 * 60);
+          await p.exec();
+        })(),
+
+        // DB: update token inside sessionToken array
+        Model.findByIdAndUpdate(
+          id,
+          {
+            $set: {
+              'sessionToken.$[elem].token': newToken,
+            },
+          },
+          {
+            arrayFilters: [{ 'elem.token': oldToken }],
+            new: true,
+          }
+        ).exec(),
+      ]);
+    } catch {
+      throw new ApiError(
+        'Failed to rotate session. Please try again later.',
+        HttpStatusCode.INTERNAL_SERVER_ERROR
+      );
+    }
+  };
+
+  protected removeASession = async <T extends IUser>(
+    res: Response,
+    Model: Model<T>,
+    payload: {
+      id: string;
+      token: string;
+    }
+  ): Promise<void> => {
+    try {
+      const { id, token } = payload;
+      await Promise.all([
+        // Redis session removal
+        (async () => {
+          const p = nodeClient.multi();
+          p.SREM(`${id}:session`, token);
+          const [rem] = await p.exec();
+
+          // Ensure the token was actually removed
+          if (Number(rem) !== 1) {
+            throw new Error('Token not found in session set.');
+          }
+        })(),
+
+        // DB session token status update
+        Model.findByIdAndUpdate(
+          id,
+          {
+            $set: {
+              'sessionToken.$[elem].status': false,
+            },
+          },
+          {
+            arrayFilters: [{ 'elem.token': token }],
+            new: true,
+          }
+        ).exec(),
+      ]);
+
+      // Clear cookies only after both Redis and DB succeed
+      this.clearAllCookies(res);
+    } catch {
+      throw new ApiError(
+        'Failed to remove session. Please try again later.',
         HttpStatusCode.INTERNAL_SERVER_ERROR
       );
     }

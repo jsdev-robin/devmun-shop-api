@@ -92,23 +92,6 @@ export interface ISession {
   trustedDevice?: boolean;
 }
 
-export interface IRolePermission {
-  resource?: string;
-  actions?: string[];
-}
-
-export interface IRole {
-  name?: UserRole;
-  permissions?: IRolePermission[];
-  inheritedRoles?: UserRole[];
-}
-
-export interface IPermissionOverride {
-  resource?: string;
-  actionsAllowed?: string[];
-  actionsDenied?: string[];
-}
-
 export interface INotificationPreference {
   channel?: string;
   event?: string;
@@ -149,22 +132,11 @@ export interface IComplianceFlags {
 export interface IUser extends Document {
   firstName: string;
   lastName: string;
-  phones?: IPhone[];
   email?: string;
   normalizeMail?: string;
-  primaryPhone?: string;
   password?: string;
-  socialAccounts?: ISocialAccount[];
-  roles?: IRole[];
-  permissionOverrides?: IPermissionOverride[];
-  mfaFactors?: IMFAFactor[];
-  addresses?: IAddress[];
+  role?: UserRole;
   sessions?: ISession[];
-  notificationPreferences?: INotificationPreference[];
-  accountChangeLogs?: IAccountChangeLog[];
-  behaviorAnalytics?: IBehaviorAnalytics;
-  complianceFlags?: IComplianceFlags;
-  emailChangeLog?: IEmail[];
   isActive?: boolean;
   isBanned?: boolean;
   banReason?: string;

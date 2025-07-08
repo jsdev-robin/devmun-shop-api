@@ -148,6 +148,7 @@ export class AuthServices<T extends IUser> extends AuthEngine {
         email: email,
         normalizeMail: normalizeMail,
         password: password,
+        role: this.role,
       };
 
       // Create a new user record if OTP matches
@@ -273,13 +274,9 @@ export class AuthServices<T extends IUser> extends AuthEngine {
 
         try {
           // Store session in Redis and database concurrently
-          await this.storeSession({
-            req,
-            Model: this.model,
-            payload: {
-              user,
-              accessToken,
-            },
+          await this.storeSession(req, this.model, {
+            user,
+            accessToken,
           });
 
           // Handle response: either redirect or JSON response
@@ -395,6 +392,96 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       next();
     };
   };
+
+  public refreshToken = catchAsync(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      // Get refresh token from cookies
+      const refreshCookie = req.cookies[this.getRefreshCookieConfig().name];
+
+      // Exit early if no refresh token is found
+      if (!refreshCookie) {
+        return this.sessionUnauthorized(res, next);
+      }
+
+      try {
+        // Verify and decode the refresh token payload
+        const decoded = jwt.verify(
+          refreshCookie,
+          config.REFRESH_TOKEN
+        ) as TokenSignature;
+
+        // Rotate access and refresh tokens
+        const [accessToken, refreshToken] = this.rotateToken(req, {
+          id: decoded.id,
+          role: decoded.role,
+          remember: decoded.remember,
+        });
+
+        // Hash new access token for Redis and DB session comparison
+        const oldToken = decoded.token;
+        const newToken = Crypto.hmac(String(accessToken));
+
+        // Rotate session in Redis: remove old and add new token
+        await this.rotateSession(this.model, {
+          id: decoded.id,
+          oldToken,
+          newToken,
+        });
+
+        // Set newly issued tokens in cookies
+        res.cookie(...this.createAccessCookie(accessToken, decoded.remember));
+        res.cookie(...this.createRefreshCookie(refreshToken, decoded.remember));
+
+        // Respond with success message
+        res.status(200).json({
+          status: Status.SUCCESS,
+          message: 'Token refreshed successfully.',
+        });
+      } catch (error) {
+        this.clearAllCookies(res);
+        next(error);
+      }
+    }
+  );
+
+  public signout = catchAsync(
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      const accessToken = req.signedCookies[this.getAccessCookieConfig().name];
+      const user = req.self;
+
+      try {
+        await this.removeASession(res, this.model, {
+          id: user.id,
+          token: Crypto.hmac(accessToken),
+        });
+
+        res.status(HttpStatusCode.OK).json({
+          status: Status.SUCCESS,
+          message: 'You have been successfully signed out.',
+        });
+      } catch (error) {
+        this.clearAllCookies(res);
+        next(error);
+      }
+    }
+  );
+
+  // ================== Manage user information ==================
+  public getProfile = catchAsync(
+    async (req: Request, res: Response): Promise<void> => {
+      // User is already attached to request via auth middleware
+      const user = req.self;
+
+      // Consider returning only necessary profile data
+      res.status(HttpStatusCode.OK).json({
+        status: Status.SUCCESS,
+        message: 'Profile retrieved successfully',
+        data: {
+          user,
+        },
+      });
+    }
+  );
 }
 
 export default AuthServices;
