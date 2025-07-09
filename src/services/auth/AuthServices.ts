@@ -180,7 +180,8 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       }
 
       // Get current failed login attempts from cache
-      const key = req.ip ?? '' + this.getDeviceInfo(req);
+      const key = (req.ip ?? '') + '|' + this.getDeviceInfo(req);
+
       const newAttempts = await nodeClient.get(Crypto.hash(key));
 
       // Calculate TTL (Time-To-Live) for lock if needed
@@ -227,7 +228,7 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       // Validate user existence and password
       if (!user || !(await user.isPasswordValid(password))) {
         await this.enforceLockPolicy(res, {
-          key: req.ip ?? '' + this.getDeviceInfo(req),
+          key: (req.ip ?? '') + '|' + this.getDeviceInfo(req),
           TTL: 1,
         });
         return next(
