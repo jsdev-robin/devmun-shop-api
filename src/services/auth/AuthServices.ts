@@ -286,7 +286,9 @@ export class AuthServices<T extends IUser> extends AuthEngine {
             res.status(HttpStatusCode.OK).json({
               status: Status.SUCCESS,
               message: `Welcome back ${user?.firstName}.`,
-              role: user?.role ?? 'user',
+              data: {
+                role: user?.role ?? 'user',
+              },
             });
           }
         } catch (error) {
