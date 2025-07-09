@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import ApiError from './ApiError';
+import { NextFunction, Request, Response } from 'express';
 import config from '../../configs/config';
 import HttpStatusCode from '../../utils/HttpStatusCode';
+import logger from '../logger';
+import ApiError from './ApiError';
 
 interface CustomError extends Error {
   statusCode?: number;
@@ -85,6 +86,14 @@ const sendError = (err: CustomError, res: Response, isDev: boolean): void => {
   const statusCode = err.statusCode ?? HttpStatusCode.INTERNAL_SERVER_ERROR;
   const status = err.status ?? 'error';
 
+  // Log the error
+  logger.error(`${statusCode} - ${err.message}`, {
+    error: err,
+    stack: err.stack,
+    statusCode,
+    status,
+  });
+
   if (isDev) {
     res.status(statusCode).json({
       status,
@@ -110,7 +119,7 @@ const sendError = (err: CustomError, res: Response, isDev: boolean): void => {
 
 const globalErrorHandler = (
   err: CustomError,
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): void => {
@@ -118,6 +127,14 @@ const globalErrorHandler = (
   err.status = err.status ?? 'error';
 
   const isDev = config.NODE_ENV === 'development';
+
+  // Log the request that caused the error
+  logger.error(`Error occurred in ${req.method} ${req.path}`, {
+    headers: req.headers,
+    query: req.query,
+    body: req.body,
+    originalError: err,
+  });
 
   if (err.name === 'CastError') {
     err = handleInvalidFieldError(err);

@@ -1,13 +1,14 @@
 import http from 'http';
 import { Server } from 'socket.io';
 import app from './app';
+import config from './configs/config';
 import {
   initializeCloudinary,
   initializeMongoDB,
   initializeRedis,
 } from './configs/initializeConnection';
-import config from './configs/config';
 import { nodeClient } from './configs/redis';
+import logger from './middlewares/logger';
 
 const httpServer = http.createServer(app);
 
@@ -81,13 +82,15 @@ httpServer.listen(Number(config.PORT), () => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err: Error) => {
+  logger.error('Uncaught Exception thrown:', err);
   console.error('❌ UNCAUGHT EXCEPTION! 💥 Shutting down...');
   console.error(err.name, err.message);
   process.exit(1);
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err: Error) => {
-  console.error('❌ UNHANDLED PROMISE REJECTION 💥:', err.message);
+process.on('unhandledRejection', (reason: Error, promise: Promise<unknown>) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('❌ UNHANDLED PROMISE REJECTION 💥:', reason.message);
   process.exit(1);
 });

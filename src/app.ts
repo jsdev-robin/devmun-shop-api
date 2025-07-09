@@ -17,6 +17,8 @@ import { rateLimiter } from './middlewares/rateLimiter';
 import HttpStatusCode from './utils/HttpStatusCode';
 import Status from './utils/status';
 
+import { advancedSecurityMiddleware } from './middlewares/advancedSecurityMiddleware';
+import { requestLogger } from './middlewares/logger';
 import productRouter from './routes/productRoute';
 import sellerAuthRouter from './routes/sellerAuthRoute';
 
@@ -26,6 +28,12 @@ const app: Application = express();
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+// Use logger
+app.use(requestLogger);
+
+// Protect honeybot
+app.use(advancedSecurityMiddleware);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
