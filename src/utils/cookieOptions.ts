@@ -32,14 +32,26 @@ export const cookieOptions: CookieOptions = {
 //   maxAge: 15 * 1000,
 // };
 
-// For Testing
+// // For Testing
+// export const accessCookieExp = {
+//   expires: new Date(Date.now() + refreshTTL * 24 * 60 * 60 * 1000),
+//   maxAge: refreshTTL * 24 * 60 * 60 * 1000,
+// };
+
+// // 3 days
+// export const refreshCookieExp = {
+//   expires: new Date(Date.now() + refreshTTL * 24 * 60 * 60 * 1000),
+//   maxAge: refreshTTL * 24 * 60 * 60 * 1000,
+// };
+
+// For Testing - 7 days
 export const accessCookieExp = {
-  expires: new Date(Date.now() + refreshTTL * 24 * 60 * 60 * 1000),
-  maxAge: refreshTTL * 24 * 60 * 60 * 1000,
+  expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 // 3 days
 export const refreshCookieExp = {
-  expires: new Date(Date.now() + refreshTTL * 24 * 60 * 60 * 1000),
-  maxAge: refreshTTL * 24 * 60 * 60 * 1000,
+  expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 };
