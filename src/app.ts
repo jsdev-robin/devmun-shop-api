@@ -82,8 +82,7 @@ app.use(
   cors({
     origin: [
       'https://shop.devmun.xyz',
-      'https://shop.seller.devmun.xyz',
-      'https://shop.admin.devmun.xyz',
+      'https://shop-hub.devmun.xyz',
       'http://localhost:3000',
       'http://localhost:3001',
     ],
