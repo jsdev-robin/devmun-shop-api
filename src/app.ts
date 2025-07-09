@@ -17,6 +17,7 @@ import { rateLimiter } from './middlewares/rateLimiter';
 import HttpStatusCode from './utils/HttpStatusCode';
 import Status from './utils/status';
 
+import productRouter from './routes/productRoute';
 import sellerAuthRouter from './routes/sellerAuthRoute';
 
 const app: Application = express();
@@ -99,6 +100,7 @@ app.get('/', (_, res) => {
 
 // Shop route
 app.use('/v1/seller/auth', sellerAuthRouter);
+app.use('/v1/product', productRouter);
 
 // Handle 404 errors
 app.all(/(.*)/, (req: Request, res: Response, next: NextFunction) => {
