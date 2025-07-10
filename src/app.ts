@@ -104,7 +104,7 @@ app.get('/', (_, res) => {
 
 // Shop route
 app.use('/v1/seller/auth', sellerAuthRouter);
-app.use('/v1/product', productRouter);
+app.use('/v1/seller', productRouter);
 
 // Handle 404 errors
 app.all(/(.*)/, (req: Request, res: Response, next: NextFunction) => {

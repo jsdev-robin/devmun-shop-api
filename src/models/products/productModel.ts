@@ -78,11 +78,10 @@ const productSchema = new Schema<IProduct>(
       required: true,
     },
     isAdult: { type: Boolean, required: true },
-
-    // guides: [
-    //   type: mongoose.Schema.ObjectId,
-    //   ref: "Seller"
-    // ]
+    guides: {
+      type: Schema.Types.ObjectId,
+      ref: 'Seller',
+    },
   },
   { toJSON: { virtuals: true }, toObject: { virtuals: true }, timestamps: true }
 );

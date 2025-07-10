@@ -9,18 +9,24 @@ const router = express.Router();
 
 router.use(
   sellerAuthController.validateToken,
-  sellerAuthController.requireAuth,
-  sellerAuthController.restrictTo('admin', 'seller')
+  sellerAuthController.requireAuth
 );
+
+router
+  .route('/product/')
+  .get(productController.readAll)
+  .post(productSchema, runSchema, productController.create);
 
 // Admin Controller
 router
   .route('/product')
-  .get(productController.readMyAll)
+  .all(sellerAuthController.restrictTo('admin'))
+  .get(productController.readAll)
   .post(productSchema, runSchema, productController.create);
 
 router
   .route('/product/:id')
+  .all(sellerAuthController.restrictTo('admin'))
   .get(checkMongoId, runSchema, productController.readOne)
   .delete(checkMongoId, runSchema, productController.deleteOne);
 

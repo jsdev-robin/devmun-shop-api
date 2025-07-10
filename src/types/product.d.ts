@@ -164,4 +164,6 @@ export interface IProduct extends Document {
   metadata: IProductMetadata;
   status: 'draft' | 'active' | 'archived';
   isAdult: boolean;
+
+  guides: Types.ObjectId[];
 }
