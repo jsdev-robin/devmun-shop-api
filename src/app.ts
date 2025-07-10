@@ -18,8 +18,8 @@ import HttpStatusCode from './utils/HttpStatusCode';
 import Status from './utils/status';
 
 import { advancedSecurityMiddleware } from './middlewares/advancedSecurityMiddleware';
-import productRouter from './routes/productRoute';
 import sellerAuthRouter from './routes/sellerAuthRoute';
+import sellerProductRouter from './routes/sellerProductRoute';
 
 const app: Application = express();
 
@@ -103,8 +103,8 @@ app.get('/', (_, res) => {
 });
 
 // Shop route
-app.use('/v1/seller/auth', sellerAuthRouter);
-app.use('/v1/seller', productRouter);
+app.use('/v1/hub/auth', sellerAuthRouter);
+app.use('/v1/seller', sellerProductRouter);
 
 // Handle 404 errors
 app.all(/(.*)/, (req: Request, res: Response, next: NextFunction) => {

@@ -10,7 +10,7 @@ export class QueryServices<T extends Document> {
     this.queryString = queryString;
   }
 
-  filter(): this {
+  public filter(): this {
     const queryObj = { ...this.queryString };
     const excludedFields = ['page', 'limit', 'sort', 'fields'];
     excludedFields.forEach((el) => delete queryObj[el]);
@@ -30,7 +30,7 @@ export class QueryServices<T extends Document> {
     return this;
   }
 
-  sort(): this {
+  public sort(): this {
     if (this.queryString.sort) {
       const sortBy =
         typeof this.queryString.sort === 'string'
@@ -45,7 +45,7 @@ export class QueryServices<T extends Document> {
     return this;
   }
 
-  limitFields(): this {
+  public limitFields(): this {
     if (this.queryString.fields) {
       const fields =
         typeof this.queryString.fields === 'string'
@@ -60,28 +60,28 @@ export class QueryServices<T extends Document> {
     return this;
   }
 
-  paginate(): this {
+  public paginate(): this {
     const page = this.queryString.page
-      ? parseInt(String(this.queryString.page), 10) || 1
+      ? parseInt(String(this.queryString.page), 20) || 1
       : 1;
     const limit = this.queryString.limit
-      ? parseInt(String(this.queryString.limit), 10) || 10
-      : 10;
+      ? parseInt(String(this.queryString.limit), 20) || 20
+      : 20;
     const skip = (page - 1) * limit;
 
     this.query = this.query.skip(skip).limit(limit);
     return this;
   }
 
-  async exec(): Promise<{ results: unknown[]; total: number }> {
-    const [results, total] = await Promise.all([
+  public async exec(): Promise<{ data: unknown[]; total: number }> {
+    const [data, total] = await Promise.all([
       this.query.lean().exec(),
       this.query.model.countDocuments(this.query.getFilter()),
     ]);
-    return { results, total };
+    return { data, total };
   }
 
-  populate(populateOptions: PopulateOptions | PopulateOptions[]): this {
+  public populate(populateOptions: PopulateOptions | PopulateOptions[]): this {
     this.query = this.query.populate(populateOptions);
     return this;
   }

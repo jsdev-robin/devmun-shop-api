@@ -31,6 +31,25 @@ export class ProductServices<T extends IProduct> {
     }
   );
 
+  public createMany = catchAsync(
+    async (
+      req: Request<unknown, unknown, IProduct[]>,
+      res: Response
+    ): Promise<void> => {
+      const productsWithGuide = req.body.map((product) => ({
+        ...product,
+        guides: req.self._id,
+      }));
+
+      await this.model.insertMany(productsWithGuide);
+
+      res.status(HttpStatusCode.CREATED).json({
+        status: Status.SUCCESS,
+        message: 'Products have been created successfully.',
+      });
+    }
+  );
+
   public readAll = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       // 1. Pagination
@@ -166,9 +185,8 @@ export class ProductServices<T extends IProduct> {
 
   public readMyAll = catchAsync(
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      // 1. Pagination
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 20;
 
       const features = new QueryServices(this.model, req.query)
         .filter()
@@ -180,10 +198,10 @@ export class ProductServices<T extends IProduct> {
           select: 'firstName lastName email -_id',
         });
 
-      const { results, total } = await features.exec();
+      const { data, total } = await features.exec();
 
       // 7. Handle no products found
-      if (results.length === 0) {
+      if (data.length === 0) {
         return next(
           new ApiError(
             'No products found matching the specified criteria',
@@ -196,7 +214,8 @@ export class ProductServices<T extends IProduct> {
         status: Status.SUCCESS,
         message: 'Product has been retrieve successfully.',
         data: {
-          results,
+          data,
+          total,
           pagination: {
             total,
             totalPages: Math.ceil(total / limit),
