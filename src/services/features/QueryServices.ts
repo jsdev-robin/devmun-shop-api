@@ -10,13 +10,6 @@ export class QueryServices<T extends Document> {
     this.queryString = queryString;
   }
 
-  private parseValue(value: string): any {
-    if (!isNaN(Number(value))) return Number(value);
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  }
-
   public filter(): this {
     const queryObj = { ...this.queryString };
     const excludedFields = ['page', 'limit', 'sort', 'fields'];
