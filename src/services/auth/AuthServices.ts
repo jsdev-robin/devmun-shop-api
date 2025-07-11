@@ -315,26 +315,21 @@ export class AuthServices<T extends IUser> extends AuthEngine {
         return this.sessionUnauthorized(res, next);
       }
 
-      try {
-        // Verify the access token and decode the payload
-        const decoded = jwt.verify(accessCookie, config.ACCESS_TOKEN) as {
-          id: string;
-        } & TokenSignature;
+      // Verify the access token and decode the payload
+      const decoded = jwt.verify(accessCookie, config.ACCESS_TOKEN) as {
+        id: string;
+      } & TokenSignature;
 
-        // Attach user ID and access token to the request object
-        req.userId = decoded?.id;
-        req.accessToken = accessCookie;
+      // Attach user ID and access token to the request object
+      req.userId = decoded?.id;
+      req.accessToken = accessCookie;
 
-        // Validate the decrypted IP against the request IP
-        if (!decoded || this.checkTokenSignature(decoded, req)) {
-          return this.sessionUnauthorized(res, next);
-        }
-
-        next();
-      } catch (error) {
-        this.clearAllCookies(res);
-        next(error);
+      // Validate the decrypted IP against the request IP
+      if (!decoded || this.checkTokenSignature(decoded, req)) {
+        return this.sessionUnauthorized(res, next);
       }
+
+      next();
     }
   );
 
@@ -406,66 +401,56 @@ export class AuthServices<T extends IUser> extends AuthEngine {
         return this.sessionUnauthorized(res, next);
       }
 
-      try {
-        // Verify and decode the refresh token payload
-        const decoded = jwt.verify(
-          refreshCookie,
-          config.REFRESH_TOKEN
-        ) as TokenSignature;
+      // Verify and decode the refresh token payload
+      const decoded = jwt.verify(
+        refreshCookie,
+        config.REFRESH_TOKEN
+      ) as TokenSignature;
 
-        // Rotate access and refresh tokens
-        const [accessToken, refreshToken] = this.rotateToken(req, {
-          id: decoded.id,
-          role: decoded.role,
-          remember: decoded.remember,
-        });
+      // Rotate access and refresh tokens
+      const [accessToken, refreshToken] = this.rotateToken(req, {
+        id: decoded.id,
+        role: decoded.role,
+        remember: decoded.remember,
+      });
 
-        // Hash new access token for Redis and DB session comparison
-        const oldToken = decoded.token;
-        const newToken = Crypto.hmac(String(accessToken));
+      // Hash new access token for Redis and DB session comparison
+      const oldToken = decoded.token;
+      const newToken = Crypto.hmac(String(accessToken));
 
-        // Rotate session in Redis: remove old and add new token
-        await this.rotateSession(this.model, {
-          id: decoded.id,
-          oldToken,
-          newToken,
-        });
+      // Rotate session in Redis: remove old and add new token
+      await this.rotateSession(this.model, {
+        id: decoded.id,
+        oldToken,
+        newToken,
+      });
 
-        // Set newly issued tokens in cookies
-        res.cookie(...this.createAccessCookie(accessToken, decoded.remember));
-        res.cookie(...this.createRefreshCookie(refreshToken, decoded.remember));
+      // Set newly issued tokens in cookies
+      res.cookie(...this.createAccessCookie(accessToken, decoded.remember));
+      res.cookie(...this.createRefreshCookie(refreshToken, decoded.remember));
 
-        // Respond with success message
-        res.status(200).json({
-          status: Status.SUCCESS,
-          message: 'Token refreshed successfully.',
-        });
-      } catch (error) {
-        this.clearAllCookies(res);
-        next(error);
-      }
+      // Respond with success message
+      res.status(200).json({
+        status: Status.SUCCESS,
+        message: 'Token refreshed successfully.',
+      });
     }
   );
 
   public signout = catchAsync(
-    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const accessToken = req.signedCookies[this.getAccessCookieConfig().name];
       const user = req.self;
 
-      try {
-        await this.removeASession(res, this.model, {
-          id: user._id,
-          token: Crypto.hmac(accessToken),
-        });
+      await this.removeASession(res, this.model, {
+        id: user._id,
+        token: Crypto.hmac(accessToken),
+      });
 
-        res.status(HttpStatusCode.OK).json({
-          status: Status.SUCCESS,
-          message: 'You have been successfully signed out.',
-        });
-      } catch (error) {
-        this.clearAllCookies(res);
-        next(error);
-      }
+      res.status(HttpStatusCode.OK).json({
+        status: Status.SUCCESS,
+        message: 'You have been successfully signed out.',
+      });
     }
   );
 

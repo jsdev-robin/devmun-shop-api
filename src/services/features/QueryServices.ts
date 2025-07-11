@@ -10,15 +10,27 @@ export class QueryServices<T extends Document> {
     this.queryString = queryString;
   }
 
+  private parseValue(value: string): any {
+    if (!isNaN(Number(value))) return Number(value);
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  }
+
   public filter(): this {
     const queryObj = { ...this.queryString };
     const excludedFields = ['page', 'limit', 'sort', 'fields'];
     excludedFields.forEach((el) => delete queryObj[el]);
 
     let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+    queryStr = queryStr.replace(
+      /\b(eq|ne|gt|gte|lt|lte|in|nin|regex|exists|all|size|elemMatch|type|mod|not|and|or|nor|text|where|geoWithin|geoIntersects|near|nearSphere|expr|jsonSchema|bitsAllClear|bitsAllSet|bitsAnyClear|bitsAnySet|rand)\b/g,
+      (match) => `$${match}`
+    );
 
     const parsedQuery = JSON.parse(queryStr);
+
+    console.log(parsedQuery);
 
     Object.entries(parsedQuery).forEach(([key, value]) => {
       if (typeof value === 'string') {

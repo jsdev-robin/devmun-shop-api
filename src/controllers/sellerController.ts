@@ -3,17 +3,17 @@ import AuthServices from '../services/auth/AuthServices';
 import {
   cookieOptions,
   enableSignature,
+  refreshCookieExp,
 } from '../services/auth/particles/CookieService';
 import { AuthServiceOptions } from '../services/auth/types/authTypes';
 import { IUser } from '../types/user';
-import { accessCookieExp, refreshCookieExp } from '../utils/cookieOptions';
 
 const options: AuthServiceOptions<IUser> = {
   model: getUserModel('Seller'),
   cookies: {
     access: {
       name: 'aeuT2k1z9',
-      TTL: accessCookieExp,
+      TTL: refreshCookieExp,
       options: {
         ...cookieOptions,
         ...enableSignature,

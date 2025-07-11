@@ -184,7 +184,7 @@ export class ProductServices<T extends IProduct> {
   );
 
   public readMyAll = catchAsync(
-    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
@@ -199,16 +199,6 @@ export class ProductServices<T extends IProduct> {
         });
 
       const { data, total } = await features.exec();
-
-      // 7. Handle no products found
-      if (data.length === 0) {
-        return next(
-          new ApiError(
-            'No products found matching the specified criteria',
-            HttpStatusCode.NOT_FOUND
-          )
-        );
-      }
 
       res.status(HttpStatusCode.OK).json({
         status: Status.SUCCESS,

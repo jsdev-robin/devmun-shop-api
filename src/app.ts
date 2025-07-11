@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import ipinfo, { defaultIPSelector } from 'ipinfo-express';
 import morgan from 'morgan';
 import path from 'path';
+// import qs from 'qs';
 import swaggerUi from 'swagger-ui-express';
 import config from './configs/config';
 import * as swaggerDocument from './docs/swagger-output.json';
@@ -27,6 +28,10 @@ const app: Application = express();
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+// Enable nested query parsing
+// app.set('query parser', (str: string) => qs.parse(str));
+app.set('query parser', 'extended');
 
 app.use(advancedSecurityMiddleware);
 
