@@ -1,6 +1,7 @@
 import { getUserModel } from '../models/user/userSchema';
 import AuthServices from '../services/auth/AuthServices';
 import {
+  accessCookieExp,
   cookieOptions,
   enableSignature,
   refreshCookieExp,
@@ -13,7 +14,7 @@ const options: AuthServiceOptions<IUser> = {
   cookies: {
     access: {
       name: 'aeuT2k1z9',
-      TTL: refreshCookieExp,
+      TTL: accessCookieExp,
       options: {
         ...cookieOptions,
         ...enableSignature,

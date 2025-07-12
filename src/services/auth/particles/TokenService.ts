@@ -70,7 +70,7 @@ export class TokenService extends CookieService {
         { ...clientSignature },
         config.ACCESS_TOKEN,
         {
-          expiresIn: config.ISPRODUCTION ? `${accessTTL}m` : '3d',
+          expiresIn: `${accessTTL}m`,
           algorithm: 'HS256',
         }
       );
