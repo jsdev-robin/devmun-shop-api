@@ -76,10 +76,10 @@ export class QueryServices<T extends Document> {
 
   public paginate(): this {
     const page = this.queryString.page
-      ? parseInt(String(this.queryString.page), 20) || 1
+      ? parseInt(String(this.queryString.page), 10) || 1
       : 1;
     const limit = this.queryString.limit
-      ? parseInt(String(this.queryString.limit), 20) || 20
+      ? parseInt(String(this.queryString.limit), 10) || 20
       : 20;
     const skip = (page - 1) * limit;
 
