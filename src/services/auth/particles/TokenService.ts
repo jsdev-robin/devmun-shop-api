@@ -7,7 +7,7 @@ import { UserRole } from '../../../types/user';
 import HttpStatusCode from '../../../utils/HttpStatusCode';
 import { Crypto } from '../../security/CryptoServices';
 import { IAuthCookies } from '../types/authTypes';
-import { CookieService, refreshTTL } from './CookieService';
+import { accessTTL, CookieService, refreshTTL } from './CookieService';
 
 export interface TokenSignature {
   ip: string;
@@ -70,7 +70,7 @@ export class TokenService extends CookieService {
         { ...clientSignature },
         config.ACCESS_TOKEN,
         {
-          expiresIn: `${10}s`,
+          expiresIn: `${accessTTL}m`,
           algorithm: 'HS256',
         }
       );
