@@ -197,7 +197,7 @@ export class ProductServices<T extends IProduct> {
         .sort()
         .limitFields()
         .paginate()
-        .globalSearch(['basicInfo.title', 'pricing.basePrice'])
+        .globalSearch(['basicInfo.title'])
         .populate({
           path: 'guides',
           select: 'firstName lastName email -_id',
