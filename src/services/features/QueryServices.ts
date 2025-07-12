@@ -23,8 +23,6 @@ export class QueryServices<T extends Document> {
 
     const parsedQuery = JSON.parse(queryStr);
 
-    console.log(parsedQuery);
-
     Object.entries(parsedQuery).forEach(([key, value]) => {
       if (typeof value === 'string') {
         parsedQuery[key] = { $regex: value, $options: 'i' };
