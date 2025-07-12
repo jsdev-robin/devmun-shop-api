@@ -219,7 +219,7 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       // Extract login fields from request body
       const { email, password, remember } = req.body;
 
-      // Look up user by email, including passwords
+      // Look up user by email, including password
       const user = await this.model
         .findOne({ email })
         .select('+password')
