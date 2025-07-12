@@ -262,25 +262,22 @@ export class AuthServices<T extends IUser> extends AuthEngine {
         const remember = req.remember;
         const redirect = req.redirect;
 
-        // Generate access and refresh tokens
         const [accessToken, refreshToken] = this.rotateToken(req, {
           id: user._id,
           role: user.role,
-          remember: remember,
+          remember,
         });
 
-        // Set access and refresh tokens as cookies
         res.cookie(...this.createAccessCookie(accessToken, remember));
         res.cookie(...this.createRefreshCookie(refreshToken, remember));
 
-        try {
-          // Store session in Redis and database concurrently
-          await this.storeSession(req, this.model, {
-            user,
-            accessToken,
-          });
+        res.once('finish', () => {
+          this.storeSession(req, this.model, { user, accessToken }).catch(
+            (err) => console.error('Failed to store session:', err)
+          );
+        });
 
-          // Handle response: either redirect or JSON response
+        try {
           if (redirect) {
             res.redirect(`${url}?role=${user?.role}`);
           } else {
@@ -293,7 +290,9 @@ export class AuthServices<T extends IUser> extends AuthEngine {
             });
           }
         } catch (error) {
-          this.clearAllCookies(res);
+          if (!res.headersSent) {
+            this.clearAllCookies(res);
+          }
           next(error);
         }
       }
@@ -414,17 +413,6 @@ export class AuthServices<T extends IUser> extends AuthEngine {
         remember: decoded.remember,
       });
 
-      // Hash new access token for Redis and DB session comparison
-      const oldToken = decoded.token;
-      const newToken = accessToken;
-
-      // Rotate session in Redis: remove old and add new token
-      await this.rotateSession(this.model, {
-        id: decoded.id,
-        oldToken,
-        newToken,
-      });
-
       // Set newly issued tokens in cookies
       res.cookie(...this.createAccessCookie(accessToken, decoded.remember));
       res.cookie(...this.createRefreshCookie(refreshToken, decoded.remember));
@@ -433,6 +421,19 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       res.status(200).json({
         status: Status.SUCCESS,
         message: 'Token refreshed successfully.',
+      });
+
+      // Hash new access token for Redis and DB session comparison
+      const oldToken = decoded.token;
+      const newToken = accessToken;
+
+      // Rotate session in Redis: remove old and add new token
+      res.once('finish', () => {
+        this.rotateSession(this.model, {
+          id: decoded.id,
+          oldToken,
+          newToken,
+        }).catch((err) => console.error('Failed to store session:', err));
       });
     }
   );

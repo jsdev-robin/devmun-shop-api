@@ -21,6 +21,7 @@ import Status from './utils/status';
 import { advancedSecurityMiddleware } from './middlewares/advancedSecurityMiddleware';
 import hubAuthRouter from './routes/hubAuthRoute';
 import sellerProductRouter from './routes/sellerProductRoute';
+import utilsRouter from './routes/utilsRoutes';
 
 const app: Application = express();
 
@@ -110,6 +111,7 @@ app.get('/', (_, res) => {
 // Shop route
 app.use('/v1/hub/auth', hubAuthRouter);
 app.use('/v1/seller', sellerProductRouter);
+app.use('/v1/utils', utilsRouter);
 
 // Handle 404 errors
 app.all(/(.*)/, (req: Request, res: Response, next: NextFunction) => {
