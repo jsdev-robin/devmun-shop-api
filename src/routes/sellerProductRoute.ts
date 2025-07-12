@@ -1,15 +1,15 @@
 import express from 'express';
+import hubAuthController from '../controllers/hubAuthController';
 import productController from '../controllers/productController';
-import sellerAuthController from '../controllers/sellerController';
 import { checkMongoId } from '../middlewares/validations/global/global-validator';
 import { runSchema } from '../middlewares/validations/runSchema';
 
 const router = express.Router();
 
 router.use(
-  sellerAuthController.validateToken,
-  sellerAuthController.requireAuth,
-  sellerAuthController.restrictTo('admin', 'seller')
+  hubAuthController.validateToken,
+  hubAuthController.requireAuth,
+  hubAuthController.restrictTo('admin', 'seller')
 );
 
 router

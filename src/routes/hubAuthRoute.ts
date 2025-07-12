@@ -1,5 +1,5 @@
 import express from 'express';
-import sellerAuthController from '../controllers/sellerController';
+import hubAuthController from '../controllers/hubAuthController';
 import { rateLimiter } from '../middlewares/rateLimiter';
 import { authSchema } from '../middlewares/validations/auth/authSchema';
 import { runSchema } from '../middlewares/validations/runSchema';
@@ -15,7 +15,7 @@ router.post(
   }),
   authSchema.signup,
   runSchema,
-  sellerAuthController.signup
+  hubAuthController.signup
 );
 
 router.post(
@@ -27,7 +27,7 @@ router.post(
   }),
   authSchema.verifyEmail,
   runSchema,
-  sellerAuthController.verifyEmail
+  hubAuthController.verifyEmail
 );
 
 router.post(
@@ -39,25 +39,25 @@ router.post(
   }),
   authSchema.signin,
   runSchema,
-  sellerAuthController.accountLock,
-  sellerAuthController.signin,
-  sellerAuthController.createSession()
+  hubAuthController.accountLock,
+  hubAuthController.signin,
+  hubAuthController.createSession()
 );
 
-router.post('/refresh-token', sellerAuthController.refreshToken);
+router.post('/refresh-token', hubAuthController.refreshToken);
 
 router.use(
-  sellerAuthController.validateToken,
-  sellerAuthController.requireAuth,
-  sellerAuthController.restrictTo('seller', 'admin')
+  hubAuthController.validateToken,
+  hubAuthController.requireAuth,
+  hubAuthController.restrictTo('seller', 'admin')
 );
 
-router.post('/signout', sellerAuthController.signout);
+router.post('/signout', hubAuthController.signout);
 router.post(
   '/sessions/:token/revoke',
   authSchema.signoutSession,
   runSchema,
-  sellerAuthController.signoutSession
+  hubAuthController.signoutSession
 );
 
 router.post(
@@ -67,17 +67,17 @@ router.post(
     message:
       'You’ve made too many requests to revoke all sessions. Please wait 15 minutes and try again.',
   }),
-  sellerAuthController.signoutAllSession
+  hubAuthController.signoutAllSession
 );
 
 // // ================== Manage user information ==================
-router.route('/me').get(sellerAuthController.getProfile);
+router.route('/me').get(hubAuthController.getProfile);
 
 router.get(
   '/me/fields',
   authSchema.getFields,
   runSchema,
-  sellerAuthController.getProfileFields
+  hubAuthController.getProfileFields
 );
 
 export default router;

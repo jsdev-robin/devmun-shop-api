@@ -28,6 +28,6 @@ const options: AuthServiceOptions<IUser> = {
   role: 'seller',
 };
 
-const sellerAuthController = new AuthServices<IUser>(options);
+const hubAuthController = new AuthServices<IUser>(options);
 
-export default sellerAuthController;
+export default hubAuthController;

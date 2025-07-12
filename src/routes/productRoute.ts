@@ -1,6 +1,6 @@
 import express from 'express';
+import sellerAuthController from '../controllers/hubAuthController';
 import productController from '../controllers/productController';
-import sellerAuthController from '../controllers/sellerController';
 import { checkMongoId } from '../middlewares/validations/global/global-validator';
 import { productSchema } from '../middlewares/validations/products/productSchema';
 import { runSchema } from '../middlewares/validations/runSchema';
