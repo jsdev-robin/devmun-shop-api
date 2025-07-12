@@ -50,6 +50,11 @@ export const UserSchema = new Schema<IUser>(
   }
 );
 
+// Virtual to get user's full name
+UserSchema.virtual('fullName').get(function (this: IUser) {
+  return `${this.firstName ?? ''} ${this.lastName ?? ''}`.trim();
+});
+
 // Hash password before saving
 UserSchema.pre(
   'save',
