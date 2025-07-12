@@ -201,12 +201,13 @@ export class AuthEngine extends TokenService {
   ): Promise<void> => {
     try {
       const { id, oldToken, newToken } = payload;
+      const hashedToken = Crypto.hmac(String(newToken));
       await Promise.all([
         // Redis: replace old token with new one
         (async () => {
           const p = nodeClient.multi();
           p.SREM(`${id}:session`, String(oldToken));
-          p.SADD(`${id}:session`, Crypto.hmac(String(newToken)));
+          p.SADD(`${id}:session`, hashedToken);
           p.EXPIRE(`${id}:session`, refreshTTL * 24 * 60 * 60);
           await p.exec();
         })(),
@@ -216,7 +217,7 @@ export class AuthEngine extends TokenService {
           id,
           {
             $set: {
-              'sessionToken.$[elem].token': newToken,
+              'sessions.$[elem].token': hashedToken,
             },
           },
           {

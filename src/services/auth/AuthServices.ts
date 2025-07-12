@@ -311,7 +311,7 @@ export class AuthServices<T extends IUser> extends AuthEngine {
       const accessCookie = req.signedCookies[this.getAccessCookieConfig().name];
 
       // If the access token is missing, throw an unauthorized error
-      if (!accessCookie) {
+      if (accessCookie === false) {
         return this.sessionUnauthorized(res, next);
       }
 
@@ -416,7 +416,7 @@ export class AuthServices<T extends IUser> extends AuthEngine {
 
       // Hash new access token for Redis and DB session comparison
       const oldToken = decoded.token;
-      const newToken = Crypto.hmac(String(accessToken));
+      const newToken = accessToken;
 
       // Rotate session in Redis: remove old and add new token
       await this.rotateSession(this.model, {
