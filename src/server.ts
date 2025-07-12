@@ -13,7 +13,7 @@ const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://shop.devmun.xyz',
+    origin: 'http://shop-hub.devmun.xyz',
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -25,6 +25,15 @@ io.on('connection', (socket) => {
   socket.on('message', (msg) => {
     console.log('Message received:', msg);
     socket.broadcast.emit('message', msg);
+  });
+
+  socket.on('join', (roomId) => {
+    socket.join(roomId);
+    socket.to(roomId).emit('user-joined', socket.id);
+  });
+
+  socket.on('signal', ({ roomId, data }) => {
+    socket.to(roomId).emit('signal', { from: socket.id, data });
   });
 
   socket.on('disconnect', () => {
