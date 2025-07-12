@@ -15,9 +15,14 @@ export const refreshTTL: number = parseInt(
 );
 
 // 30 min
+// export const accessCookieExp = {
+//   expires: new Date(Date.now() + accessTTL * 60 * 1000),
+//   maxAge: accessTTL * 60 * 1000,
+// };
+
 export const accessCookieExp = {
-  expires: new Date(Date.now() + accessTTL * 60 * 1000),
-  maxAge: accessTTL * 60 * 1000,
+  expires: new Date(Date.now() + 10 * 1000),
+  maxAge: 10 * 1000,
 };
 
 // 3 days
