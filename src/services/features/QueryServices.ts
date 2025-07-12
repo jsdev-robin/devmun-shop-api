@@ -34,16 +34,17 @@ export class QueryServices<T extends Document> {
   }
 
   public globalSearch(fields: string[]): this {
-    const search = this.queryString.search as string;
+    const search = this.queryString.q as string;
     if (search && fields.length > 0) {
       const orConditions = fields.map((field) => ({
         [field]: { $regex: search, $options: 'i' },
       }));
+
+      this.query = this.query.model.find();
       this.query = this.query.find({ $or: orConditions });
     }
     return this;
   }
-
   public sort(): this {
     if (this.queryString.sort) {
       const sortBy =
