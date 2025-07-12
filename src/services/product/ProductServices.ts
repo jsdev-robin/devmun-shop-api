@@ -185,8 +185,12 @@ export class ProductServices<T extends IProduct> {
 
   public readMyAll = catchAsync(
     async (req: Request, res: Response): Promise<void> => {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const page = req.query.page
+        ? parseInt(String(req.query.page), 10) || 1
+        : 1;
+      const limit = req.query.limit
+        ? parseInt(String(req.query.limit), 10) || 20
+        : 20;
 
       const features = new QueryServices(this.model, req.query)
         .filter()
