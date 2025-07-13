@@ -10,4 +10,6 @@ router
   .post(utilsScham.tempImgPublicIds, runSchema, utilsController.setTempImg)
   .get(utilsController.deleteTempImg);
 
+router.route('/temp-img/:id').delete(utilsController.deleteTempImgById);
+
 export default router;

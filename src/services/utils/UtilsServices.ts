@@ -72,4 +72,26 @@ export class UtilsServices {
       });
     }
   );
+
+  public deleteTempImgById = catchAsync(
+    async (req: Request, res: Response): Promise<void> => {
+      const id = req.params.id;
+
+      await Promise.all([
+        cloudinary.uploader.destroy(id, {
+          invalidate: true,
+        }),
+        (async () => {
+          const p = nodeClient.multi();
+          p.SREM(TEMP_IMG_KEY, id);
+          await p.exec();
+        })(),
+      ]);
+
+      res.status(HttpStatusCode.OK).json({
+        status: Status.SUCCESS,
+        message: `Image with public ID "${id}" has been successfully deleted from Cloudinary.`,
+      });
+    }
+  );
 }
