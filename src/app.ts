@@ -2,7 +2,6 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Application, NextFunction, Request, Response } from 'express';
-import session from 'express-session';
 import useragent from 'express-useragent';
 import helmet from 'helmet';
 import ipinfo, { defaultIPSelector } from 'ipinfo-express';
@@ -39,19 +38,19 @@ app.use(advancedSecurityMiddleware);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Session middleware
-app.use(
-  session({
-    secret: 'dddd',
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 24 * 24 * 60 * 1000,
-    },
-  })
-);
+// app.use(
+//   session({
+//     secret: 'dddd',
+//     resave: false,
+//     saveUninitialized: true,
+//     cookie: {
+//       httpOnly: true,
+//       secure: true,
+//       sameSite: 'none',
+//       maxAge: 24 * 24 * 60 * 1000,
+//     },
+//   })
+// );
 
 // Apply the rate limiting middleware to all requests.
 app.use(rateLimiter());
