@@ -8,6 +8,7 @@ import {
   initializeRedis,
 } from './configs/initializeConnection';
 import { nodeClient } from './configs/redis';
+import { cronJobServices } from './services/cron/CronJobServices';
 
 const httpServer = http.createServer(app);
 
@@ -70,6 +71,8 @@ async function gracefulShutdown(server: http.Server, signal: string) {
     await initializeMongoDB();
     await initializeRedis();
     await initializeCloudinary();
+
+    cronJobServices.startAllJobs();
   } catch (error) {
     console.error(
       '❌ Application Initialization Failed 💥:',

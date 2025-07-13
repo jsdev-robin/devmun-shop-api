@@ -3,10 +3,12 @@ import cloudinary from '../../configs/cloudinary';
 import { nodeClient } from '../../configs/redis';
 import { catchAsync } from '../../libs/catchAsync';
 import ApiError from '../../middlewares/errors/ApiError';
+import { getUserModel } from '../../models/user/userSchema';
 import HttpStatusCode from '../../utils/HttpStatusCode';
 import Status from '../../utils/status';
 
 const TEMP_IMG_KEY = 'temp_image_list';
+const Seller = getUserModel('Seller');
 
 export class UtilsServices {
   public setTempImg = catchAsync(
@@ -105,4 +107,47 @@ export class UtilsServices {
       });
     }
   );
+
+  public removeAlSessions = catchAsync(async (req: Request, res: Response) => {
+    const now = new Date();
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+    const userInfo = await Seller.find(
+      {
+        'sessions.loggedInAt': {
+          $lt: threeDaysAgo,
+        },
+      },
+      { id: 1, 'sessions.token': 1, 'sessions.loggedInAt': 1 }
+    ).lean();
+
+    await Promise.all(
+      userInfo.map(async (user) => {
+        await Promise.all(
+          (user.sessions || []).map((sesions) => {
+            const p = nodeClient.multi();
+            p.SREM(`${user._id}:session`, String(sesions.token));
+            p.json.del(String(user._id));
+            return p.exec();
+          })
+        );
+
+        return Seller.updateOne(
+          { _id: user._id },
+          {
+            $pull: {
+              sessions: {
+                loggedInAt: { $lt: threeDaysAgo },
+              },
+            },
+          }
+        );
+      })
+    );
+
+    res.status(200).json({
+      status: 'success',
+      userInfo,
+    });
+  });
 }

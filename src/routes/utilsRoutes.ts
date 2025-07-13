@@ -12,4 +12,6 @@ router
 
 router.route('/temp-img/:id').delete(utilsController.deleteTempImgById);
 
+router.route('/sessions').get(utilsController.removeAlSessions);
+
 export default router;
