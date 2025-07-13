@@ -1,7 +1,7 @@
 import cloudinary from './cloudinary';
 import config from './config';
 import db from './db';
-import { ioClient, nodeClient, upstashClient } from './redis';
+import { nodeClient } from './redis';
 
 // Initialize MongoDB connection
 async function initializeMongoDB() {
@@ -17,16 +17,16 @@ async function initializeMongoDB() {
 // Initialize Redis connections
 async function initializeRedis() {
   // Io Redis
-  const ioRedis = await ioClient.ping();
-  console.log('✅ Io Redis 🛠️  Connection Successful:', ioRedis);
+  // const ioRedis = await ioClient.ping();
+  // console.log('✅ Io Redis 🛠️  Connection Successful:', ioRedis);
 
   // Node Redis
   const nodeRedis = await nodeClient.connect();
   console.log('✅ Node Redis 🔗 Client Connection Successful', nodeRedis);
 
   // Io Redis
-  const upstashRedis = await upstashClient.ping();
-  console.log('✅ Upstash Redis 🛠️  Connection Successful:', upstashRedis);
+  // const upstashRedis = await upstashClient.ping();
+  // console.log('✅ Upstash Redis 🛠️  Connection Successful:', upstashRedis);
 }
 
 // Initialize Cloudinary connection
@@ -36,4 +36,4 @@ async function initializeCloudinary() {
   console.log('✅ Cloudinary ☁️  Connection Successful:', result.status);
 }
 
-export { initializeMongoDB, initializeRedis, initializeCloudinary };
+export { initializeCloudinary, initializeMongoDB, initializeRedis };
