@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import cloudinary from '../../configs/cloudinary';
 import { nodeClient } from '../../configs/redis';
 import { catchAsync } from '../../libs/catchAsync';
+import ApiError from '../../middlewares/errors/ApiError';
 import HttpStatusCode from '../../utils/HttpStatusCode';
 import Status from '../../utils/status';
 
@@ -74,23 +75,33 @@ export class UtilsServices {
   );
 
   public deleteTempImgById = catchAsync(
-    async (req: Request, res: Response): Promise<void> => {
-      const id = req.params.id;
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { id } = req.params;
 
-      await Promise.all([
+      const results = await Promise.allSettled([
         cloudinary.uploader.destroy(id, {
+          resource_type: 'image',
           invalidate: true,
         }),
-        (async () => {
-          const p = nodeClient.multi();
-          p.SREM(TEMP_IMG_KEY, id);
-          await p.exec();
-        })(),
+        cloudinary.uploader.destroy(id, {
+          resource_type: 'video',
+          invalidate: true,
+        }),
       ]);
 
-      res.status(HttpStatusCode.OK).json({
-        status: Status.SUCCESS,
-        message: `Image with public ID "${id}" has been successfully deleted from Cloudinary.`,
+      const deleted = results.some(
+        (r) => r.status === 'fulfilled' && r.value.result === 'ok'
+      );
+
+      if (!deleted) {
+        return next(new ApiError('Asset not found', 404));
+      }
+
+      await nodeClient.SREM(TEMP_IMG_KEY, id);
+
+      res.status(200).json({
+        status: 'success',
+        message: `Asset "${id}" deleted`,
       });
     }
   );

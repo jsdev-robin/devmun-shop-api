@@ -5,7 +5,7 @@ import ApiError from './errors/ApiError';
 
 export const rateLimiter = ({
   windowMs = 15 * 60 * 1000,
-  max = 100,
+  max = 10000,
   message = 'Too many requests, please try again later.',
 }: {
   windowMs?: number;
